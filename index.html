@@ -802,8 +802,13 @@
     });
   }
 
+  // ====== TẠM TẮT GATE THANH TOÁN (LICENSE) ======
+  // Đang để chế độ: ai đăng nhập cũng vào được thẳng app, chỉ cần có tài khoản.
+  // Khi nào quay lại việc bán, đổi dòng dưới thành `false` để bật lại kiểm tra license.
+  const SKIP_LICENSE_CHECK = true;
+
   async function checkLicenseAndEnter(){
-    if(!supabaseConfigured){ showApp(); return; } // chế độ demo chưa nối Supabase — bỏ qua gate
+    if(!supabaseConfigured || SKIP_LICENSE_CHECK){ showApp(); return; }
     const email = currentUser.email;
     const { data, error } = await sb.from('licenses').select('status').eq('email', email).eq('status', 'active').maybeSingle();
     if(data && !error){
