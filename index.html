@@ -309,8 +309,8 @@
 <script>
 (function(){
   // ====== CẤU HÌNH SUPABASE — điền 2 giá trị này từ Project Settings > API ======
-  const SUPABASE_URL = 'https://dawknfxfgrfyqsfbyqei.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhd2tuZnhmZ3JmeXFzZmJ5cWVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNDAyMjEsImV4cCI6MjEwMDgxNjIyMX0.krMcxYEKH_3pr26202khD162kNOPmHShV1GIj8qaJLg';
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   // ==============================================================================
 
   const supabaseConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
@@ -772,9 +772,13 @@
   };
 
   // ---- Đăng nhập bằng magic link ----
+  // ====== TẠM TẮT ĐĂNG NHẬP EMAIL ======
+  // Vào thẳng app, không cần magic link nữa. Tiến độ sẽ lưu session-only (mất khi tải lại trang)
+  // cho đến khi bạn muốn bật lại đăng nhập để đồng bộ đa thiết bị.
+  const SKIP_LOGIN = true;
+
   async function initAuth(){
-    if(!supabaseConfigured){
-      // Chưa nối Supabase — bỏ qua màn hình đăng nhập, vào thẳng app để test giao diện.
+    if(SKIP_LOGIN || !supabaseConfigured){
       document.getElementById('authScreen').style.display = 'none';
       document.getElementById('appRoot').classList.add('show');
       boot();
