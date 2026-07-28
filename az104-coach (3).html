@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your Azure — AZ-104 Study Console</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg:#12172B;
+    --panel:#1C2340;
+    --panel-2:#232B4E;
+    --line: rgba(237,238,243,0.09);
+    --text:#EDEEF3;
+    --muted:#9BA3C4;
+    --amber:#F0A857;
+    --teal:#3DDC97;
+    --coral:#E8607A;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Inter', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--body); -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:980px; margin:0 auto; padding:28px 20px 80px;}
+
+  /* header */
+  .topbar{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px; flex-wrap:wrap; gap:12px;}
+  .brand-eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--amber); text-transform:uppercase;}
+  h1{font-family:var(--display); font-weight:700; font-size:28px; margin:4px 0 0;}
+  .sub-id{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:6px;}
+  .countdown{text-align:right; font-family:var(--mono); font-size:12px; color:var(--muted);}
+  .countdown b{display:block; font-family:var(--display); font-size:22px; color:var(--teal); font-weight:700;}
+
+  /* subscription bar */
+  .sub-bar{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:16px 20px; display:flex; align-items:center; gap:18px; margin-bottom:26px;
+  }
+  .ring{width:54px; height:54px; border-radius:50%; flex-shrink:0;
+    background: conic-gradient(var(--teal) calc(var(--pct,0)*1%), rgba(255,255,255,0.08) 0);
+    display:flex; align-items:center; justify-content:center; position:relative;}
+  .ring::after{content:""; position:absolute; width:40px; height:40px; border-radius:50%; background:var(--panel);}
+  .ring span{position:relative; font-family:var(--mono); font-size:12px; z-index:1;}
+  .sub-bar .label{font-size:13px; color:var(--muted);}
+  .sub-bar .val{font-family:var(--display); font-weight:700; font-size:16px;}
+  .streak{margin-left:auto; text-align:right;}
+  .streak .flame{color:var(--amber); font-family:var(--mono); font-size:13px;}
+
+  /* resource groups = domains */
+  .rg-list{display:flex; flex-direction:column; gap:14px;}
+  .rg{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+  }
+  .rg-head{
+    display:flex; align-items:center; gap:12px; padding:16px 18px; cursor:pointer;
+    user-select:none;
+  }
+  .rg-head:hover{background:var(--panel-2);}
+  .rg-icon{
+    width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:12px; font-weight:600; flex-shrink:0; color:var(--bg);
+  }
+  .rg-title{flex:1;}
+  .rg-name{font-family:var(--display); font-weight:700; font-size:15px;}
+  .rg-meta{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:2px;}
+  .rg-chevron{color:var(--muted); font-size:12px; transition:transform .2s;}
+  .rg.open .rg-chevron{transform:rotate(90deg);}
+  .rg-body{display:none; padding:0 18px 16px 18px;}
+  .rg.open .rg-body{display:block;}
+
+  .resource{
+    display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:9px 9px 0 0;
+    border:1px solid transparent; cursor:pointer;
+  }
+  .resource-wrap{margin-bottom:6px;}
+  .resource-wrap:has(.detail-panel) .resource{border-radius:9px 9px 0 0;}
+  .resource:hover{border-color:var(--line); background:rgba(255,255,255,0.02);}
+  .res-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0; border:2px solid var(--muted); background:transparent;}
+  .resource.done .res-dot{background:var(--teal); border-color:var(--teal);}
+  .resource.watch .res-dot{background:var(--coral); border-color:var(--coral);}
+  .res-name{font-size:13.5px; flex:1;}
+  .res-tag{font-family:var(--mono); font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;}
+  .res-expand{color:var(--muted); font-size:11px; transition:transform .15s; flex-shrink:0;}
+  .resource.open .res-expand{transform:rotate(180deg);}
+
+  .detail-panel{
+    background:rgba(0,0,0,0.18); border:1px solid var(--line); border-top:none;
+    border-radius:0 0 9px 9px; padding:16px 16px 14px;
+  }
+  .detail-block{margin-bottom:12px;}
+  .detail-label{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--amber); margin-bottom:5px;}
+  .detail-text{font-size:13px; line-height:1.55; color:var(--text);}
+  .terms-grid{display:flex; flex-direction:column; gap:6px;}
+  .term-row{font-size:12.5px; line-height:1.4;}
+  .term-name{font-family:var(--mono); color:var(--teal); font-weight:500;}
+  .detail-actions{margin-top:14px; display:flex; justify-content:flex-end;}
+  .mark-btn{
+    font-family:var(--display); font-weight:700; font-size:12px; border:1px solid var(--line);
+    background:transparent; color:var(--text); padding:8px 14px; border-radius:8px; cursor:pointer;
+  }
+  .mark-btn.is-done{border-color:var(--teal); color:var(--teal);}
+  .code-block{
+    background:#0B0E1C; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+    font-family:var(--mono); font-size:11.5px; color:var(--teal); overflow-x:auto; white-space:pre;
+  }
+  .trap-block{background:rgba(232,96,122,0.08); border:1px solid rgba(232,96,122,0.3); border-radius:8px; padding:10px 12px;}
+  .trap-block .detail-label{color:var(--coral);}
+  .notes-box{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:10px; font-family:var(--body); font-size:12.5px; min-height:60px; resize:vertical;
+  }
+
+  /* reference library + labs */
+  .ref-table{width:100%; border-collapse:collapse; font-size:12px; margin-bottom:16px;}
+  .ref-table th{text-align:left; font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--amber); padding:6px 8px; border-bottom:1px solid var(--line);}
+  .ref-table td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.4;}
+  .ref-table-title{font-family:var(--display); font-weight:700; font-size:13.5px; margin:16px 0 8px;}
+  .limits-list{display:flex; flex-direction:column; gap:4px; font-size:12.5px;}
+  .limits-list div{display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--line);}
+  .limits-list span:last-child{font-family:var(--mono); color:var(--teal);}
+
+  .lab-box{background:rgba(122,167,255,0.06); border:1px solid rgba(122,167,255,0.25); border-radius:10px; padding:14px 16px; margin-top:8px;}
+  .lab-title{font-family:var(--display); font-weight:700; font-size:13px; margin-bottom:8px; color:#7AA7FF;}
+  .lab-step{display:flex; gap:9px; align-items:flex-start; padding:6px 0; font-size:12.5px; line-height:1.5; cursor:pointer;}
+  .lab-check{width:15px; height:15px; border-radius:4px; border:2px solid var(--muted); flex-shrink:0; margin-top:1px;}
+  .lab-step.done .lab-check{background:var(--teal); border-color:var(--teal);}
+  .lab-step.done span{color:var(--muted); text-decoration:line-through;}
+
+  .top-actions-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
+  .study-min-input{
+    background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:8px;
+    padding:8px 10px; font-family:var(--mono); font-size:12px; width:64px;
+  }
+  .reco-box{background:rgba(240,168,87,0.08); border:1px solid rgba(240,168,87,0.3); border-radius:12px; padding:12px 16px; margin-bottom:20px; font-size:13px; line-height:1.5;}
+  .reco-box b{color:var(--amber);}
+
+  /* mock exam */
+  .mock-timer{position:fixed; top:16px; left:20px; font-family:var(--mono); font-size:13px; background:var(--panel); border:1px solid var(--line); padding:8px 14px; border-radius:10px; z-index:60;}
+  .scenario-box{background:var(--panel-2); border-left:3px solid var(--amber); padding:12px 14px; border-radius:0 8px 8px 0; font-size:12.5px; line-height:1.5; margin-bottom:14px;}
+  .domain-score-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
+  .domain-score-bar{flex:1; height:6px; background:rgba(255,255,255,0.08); border-radius:3px; margin:0 12px; overflow:hidden;}
+  .domain-score-fill{height:100%; background:var(--teal); border-radius:3px;}
+
+  /* actions */
+  .actions{display:flex; gap:12px; margin:26px 0; flex-wrap:wrap;}
+  .btn{
+    font-family:var(--display); font-weight:700; font-size:14px; border:none; border-radius:10px;
+    padding:13px 20px; cursor:pointer; display:flex; align-items:center; gap:8px;
+  }
+  .btn-primary{background:var(--amber); color:#241505;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:transparent; border:1px solid var(--line); color:var(--text);}
+  .btn-ghost:hover{background:var(--panel-2);}
+
+  /* watchlist */
+  .watchlist{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:26px;}
+  .watchlist h3{font-family:var(--display); font-size:14px; margin:0 0 10px; color:var(--coral);}
+  .watch-empty{font-size:13px; color:var(--muted);}
+  .watch-item{font-size:13px; padding:6px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between;}
+  .watch-item:last-child{border-bottom:none;}
+  .watch-item span{color:var(--muted); font-family:var(--mono); font-size:11px;}
+
+  /* quiz overlay */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,12,24,0.82); display:none;
+    align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .quiz-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; max-width:520px; width:100%;
+    padding:26px; position:relative;
+  }
+  .quiz-progress{font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:10px;}
+  .quiz-q{font-family:var(--display); font-size:17px; font-weight:500; margin-bottom:18px; line-height:1.4;}
+  .quiz-opt{
+    display:block; width:100%; text-align:left; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--text); padding:12px 14px; border-radius:10px; margin-bottom:9px; cursor:pointer; font-size:13.5px;
+    font-family:var(--body);
+  }
+  .quiz-opt:hover{border-color:var(--amber);}
+  .quiz-opt.correct{border-color:var(--teal); background:rgba(61,220,151,0.12);}
+  .quiz-opt.wrong{border-color:var(--coral); background:rgba(232,96,122,0.12);}
+  .quiz-explain{font-size:12.5px; color:var(--muted); margin-top:6px; line-height:1.5; display:none;}
+  .quiz-explain.show{display:block;}
+  .quiz-next{margin-top:16px; text-align:right;}
+  .quiz-close{position:absolute; top:14px; right:16px; background:none; border:none; color:var(--muted); font-size:18px; cursor:pointer;}
+  .quiz-done{text-align:center;}
+  .quiz-done .score{font-family:var(--display); font-size:36px; color:var(--teal); margin:10px 0;}
+
+  .empty-note{font-size:12px; color:var(--muted); font-style:italic; margin-top:8px;}
+  @media (max-width:600px){ .countdown{text-align:left;} .topbar{flex-direction:column; align-items:flex-start;} }
+
+  /* auth screen */
+  .app{display:none;}
+  .app.show{display:block;}
+  .auth-screen{
+    max-width:380px; margin:14vh auto; padding:0 20px; text-align:center;
+  }
+  .auth-eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--amber); text-transform:uppercase;}
+  .auth-title{font-family:var(--display); font-weight:700; font-size:26px; margin:6px 0 22px;}
+  .auth-input{
+    width:100%; background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:13px 14px; border-radius:10px; font-family:var(--body); font-size:14px; margin-bottom:12px;
+  }
+  .auth-btn{
+    width:100%; background:var(--amber); color:#241505; border:none; border-radius:10px;
+    padding:13px 14px; font-family:var(--display); font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .auth-msg{font-size:12.5px; color:var(--muted); margin-top:14px; line-height:1.5;}
+  .auth-msg.error{color:var(--coral);}
+  .auth-msg.ok{color:var(--teal);}
+  .logout-link{
+    position:fixed; top:16px; right:20px; font-family:var(--mono); font-size:11px;
+    color:var(--muted); background:none; border:none; cursor:pointer; text-decoration:underline;
+  }
+</style>
+</head>
+<body>
+
+<div class="auth-screen" id="authScreen">
+  <div class="auth-eyebrow">// az-104 · azure administrator</div>
+  <div class="auth-title">Your Azure</div>
+  <input type="email" class="auth-input" id="authEmail" placeholder="Email của bạn">
+  <button class="auth-btn" id="authSendBtn">Gửi link đăng nhập</button>
+  <div class="auth-msg" id="authMsg"></div>
+</div>
+
+<div class="auth-screen" id="pendingScreen" style="display:none;">
+  <div class="auth-eyebrow">// az-104 · azure administrator</div>
+  <div class="auth-title">Chưa kích hoạt</div>
+  <div class="auth-msg" style="margin-top:0; margin-bottom:16px;">Email này chưa được kích hoạt. Sau khi thanh toán, bạn sẽ nhận được xác nhận trong ít phút — bấm nút bên dưới để kiểm tra lại.</div>
+  <button class="auth-btn" id="recheckLicenseBtn">Tôi đã thanh toán — Kiểm tra lại</button>
+  <button class="logout-link" id="pendingLogoutBtn" style="position:static; margin-top:14px; display:block;">Đăng xuất</button>
+</div>
+
+<button class="logout-link" id="logoutBtn" style="display:none;">Đăng xuất</button>
+
+<div class="app" id="appRoot">
+
+
+  <div class="topbar">
+    <div>
+      <div class="brand-eyebrow">// az-104 · azure administrator</div>
+      <h1>Your Azure</h1>
+      <div class="sub-id" id="subId">subscription: hehe-az104-prep</div>
+    </div>
+    <div class="countdown">
+      <span>days to exam target</span>
+      <b id="daysLeft">—</b>
+    </div>
+  </div>
+
+  <div class="sub-bar">
+    <div class="ring" id="ring" style="--pct:0"><span id="pctText">0%</span></div>
+    <div>
+      <div class="label">Overall provisioning</div>
+      <div class="val" id="lessonsDoneText">0 / 0 lessons deployed</div>
+    </div>
+    <div class="streak">
+      <div class="flame" id="streakText">🔥 0 day streak</div>
+      <div class="label" id="lastSession">no sessions yet</div>
+    </div>
+  </div>
+
+  <div class="top-actions-row">
+    <label style="font-size:12px; color:var(--muted);">Phút học/ngày:</label>
+    <input type="number" class="study-min-input" id="studyMinInput" min="10" max="180" step="5">
+  </div>
+
+  <div class="reco-box" id="recoBox" style="display:none;"></div>
+
+  <div class="watchlist">
+    <h3>⚠ Watch again (flagged from quizzes)</h3>
+    <div id="watchBody"><div class="watch-empty">Nothing flagged yet — answer a few quiz questions to build this list.</div></div>
+  </div>
+
+  <div class="rg-list" id="rgList"></div>
+
+  <div class="rg" id="refLibraryRg">
+    <div class="rg-head" id="refLibraryHead">
+      <div class="rg-icon" style="background:#F0A857">RF</div>
+      <div class="rg-title">
+        <div class="rg-name">Reference Library</div>
+        <div class="rg-meta">Bảng so sánh dịch vụ dễ nhầm · Giới hạn dịch vụ (service limits)</div>
+      </div>
+      <div class="rg-chevron">▶</div>
+    </div>
+    <div class="rg-body" id="refLibraryBody" style="display:none; padding:0 18px 16px;"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="startQuizBtn">▶ Start today's session</button>
+    <button class="btn btn-ghost" id="mockExamBtn">🕐 Full Mock Exam (tính giờ)</button>
+    <button class="btn btn-ghost" id="resetBtn">Reset progress</button>
+  </div>
+
+  <div class="empty-note">Progress saves automatically on this device. Mark a lesson deployed by clicking it, or launch a quiz to test what's stuck.</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="quiz-card" id="quizCard"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+(function(){
+  // ====== CẤU HÌNH SUPABASE — điền 2 giá trị này từ Project Settings > API ======
+  const SUPABASE_URL = 'https://dawknfxfgrfyqsfbyqei.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhd2tuZnhmZ3JmeXFzZmJ5cWVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyNDAyMjEsImV4cCI6MjEwMDgxNjIyMX0.krMcxYEKH_3pr26202khD162kNOPmHShV1GIj8qaJLg';
+  // ==============================================================================
+
+  const supabaseConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
+  const sb = supabaseConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  const EXAM_TARGET = new Date('2026-09-30T23:59:59');
+
+  const CURRICULUM = [
+    { id:'identity-gov', name:'Manage Identities & Governance', code:'RG-IDGOV', color:'#F0A857', weeks:'Weeks 1–2',
+      lessons:[
+        {id:'l1', name:'Azure Resource Manager, Subscriptions & Resource Groups', done:true,
+          detail:{
+            simple:"ARM (Azure Resource Manager) is the single front door every request to Azure passes through — whether you click in the portal, run a script, or use an app. Everything you create lives inside a Resource Group, and every Resource Group lives inside a Subscription.",
+            analogy:"A Subscription is like a company's bank account and billing address. A Resource Group is a labeled folder for one project's paperwork. ARM is the mailroom that processes every request before it reaches any folder.",
+            terms:[["ARM","The management layer every Azure request passes through"],["Subscription","Billing and access boundary that contains Resource Groups"],["Resource Group","A folder that groups related resources so you can manage or delete them together"]],
+            advanced:"Trong Portal: Home → Resource groups → Create — bạn chọn Subscription, đặt tên RG, chọn Region. Một Resource Group có 1 Region cho metadata (nơi lưu thông tin RG), nhưng tài nguyên bên trong vẫn có thể ở region khác nhau. Xoá một Resource Group sẽ xoá TẤT CẢ tài nguyên bên trong nó — không có 'thùng rác' để khôi phục sau khi xác nhận. Một tài nguyên chỉ có thể thuộc đúng 1 Resource Group tại một thời điểm, nhưng có thể move sang RG khác (Move resource) mà không cần xoá tạo lại.",
+            examTrap:"Dễ nhầm: xoá Resource Group không hỏi bạn có chắc muốn giữ lại tài nguyên nào không — đề thi hay hỏi 'điều gì xảy ra khi xoá RG' và đáp án luôn là 'toàn bộ resource bên trong bị xoá theo', không có ngoại lệ.",
+            cli:"az group create --name MyRG --location southeastasia"
+          }},
+        {id:'l2', name:'Microsoft Entra ID Basics — Users, Groups & Devices', done:true,
+          detail:{
+            simple:"Microsoft Entra ID is Azure's identity system — it's where every user account, group, and registered device lives for your organization (your 'tenant'). Anything that needs to sign in or be granted access starts here.",
+            analogy:"Entra ID is the company directory and ID badge office. Before anyone can get into any office (resource), they need a badge issued here first.",
+            terms:[["Tenant","Your organization's dedicated instance of Entra ID"],["Group","A collection of users you can assign access to all at once"],["Device","A registered machine that can be tracked/managed by Entra ID"]],
+            advanced:"Có 2 loại Group: Security Group (dùng để gán quyền/access) và Microsoft 365 Group (dùng để chia sẻ tài nguyên cộng tác như email, calendar). Membership có thể là Assigned (thủ công) hoặc Dynamic (tự động theo rule, ví dụ department='Sales'). Guest user là tài khoản từ tổ chức khác được mời vào tenant của bạn (B2B Collaboration) — họ dùng chính tài khoản gốc của họ để đăng nhập.",
+            examTrap:"Dễ nhầm Tenant với Subscription: Tenant là ranh giới IDENTITY (ai được sign in), Subscription là ranh giới BILLING/ACCESS đến resource. Một Tenant có thể chứa nhiều Subscription, nhưng một Subscription chỉ thuộc đúng 1 Tenant.",
+            cli:"az ad user create --display-name \"Nguyen Van A\" --user-principal-name a@yourtenant.onmicrosoft.com --password \"...\""
+          }},
+        {id:'l3', name:'RBAC — Roles, Scopes & Assignments',
+          detail:{
+            simple:"RBAC decides what someone can actually DO once they've signed in. It's three pieces: WHO (the identity), WHAT (a role like Reader, Contributor, or Owner), and WHERE (the scope — one resource, one Resource Group, a Subscription, or higher).",
+            analogy:"It's a hotel keycard: it identifies who you are, what areas you're allowed into, and how far that access reaches — just your floor, or the whole building.",
+            terms:[["Role","A named set of permissions (e.g. Contributor)"],["Role Assignment","Linking a role to a specific identity at a specific scope"],["Scope","How wide the access reaches — resource, group, subscription, or management group"]],
+            advanced:"3 role built-in quan trọng nhất: Owner (full access + có thể gán quyền cho người khác), Contributor (full access NHƯNG không được gán quyền), Reader (chỉ xem, không sửa). RBAC có tính KẾ THỪA (inherit) từ scope cao xuống thấp — gán Contributor ở Subscription thì tự động áp dụng cho mọi RG/resource bên trong, trừ khi có deny assignment chặn lại. Có thể tạo Custom Role nếu 3 role built-in không đủ chi tiết.",
+            examTrap:"Bẫy hay gặp: 'User vừa được gán Reader ở Subscription và Contributor ở 1 Resource Group cụ thể bên trong — họ có quyền gì ở RG đó?' → Trả lời: Contributor (quyền rộng hơn ở scope hẹp hơn vẫn có hiệu lực, các role không loại trừ nhau, chúng CỘNG DỒN).",
+            cli:"az role assignment create --assignee user@domain.com --role \"Contributor\" --scope /subscriptions/{sub-id}/resourceGroups/MyRG"
+          }},
+        {id:'l4', name:'Azure Policy & Management Groups',
+          detail:{
+            simple:"Where RBAC controls who can act, Azure Policy controls what's allowed to exist or how it must be configured — even for people who technically have permission. Management Groups let you apply the same policies across many subscriptions at once.",
+            analogy:"If RBAC is the keycard system, Policy is the building code inspector — it doesn't care who you are, it just enforces the rules automatically, like 'no storage account outside this region.'",
+            terms:[["Policy","A rule Azure enforces or audits automatically"],["Initiative","A bundle of related policies applied together"],["Management Group","A container above Subscriptions for applying rules broadly"]],
+            advanced:"Policy effect quan trọng cần thuộc: Deny (chặn hẳn, không tạo được), Audit (vẫn tạo được nhưng ghi log không tuân thủ), Append (tự thêm field/tag còn thiếu), DeployIfNotExists (tự động triển khai thứ còn thiếu, ví dụ tự bật Diagnostic Settings). Management Group hierarchy tối đa 6 cấp, và một Management Group gốc mặc định tên là 'Tenant Root Group'.",
+            examTrap:"Dễ nhầm Policy Deny với RBAC Deny: Policy Deny chặn theo CẤU HÌNH của resource (ví dụ sai region) bất kể ai tạo; RBAC chặn theo NGƯỜI tạo. Nếu đề hỏi 'VM tạo được nhưng ở sai region dù user có quyền Owner' → đó là Policy, không phải RBAC.",
+            cli:"az policy assignment create --name enforce-region --policy \"<policy-definition-id>\" --scope /subscriptions/{sub-id}"
+          }},
+        {id:'l5', name:'Subscriptions, Cost Management & Tags',
+          detail:{
+            simple:"Beyond being an access boundary, a Subscription is also the unit Azure bills against. Cost Management shows spend per subscription or resource group, and Tags are labels (like CostCenter: Marketing) attached to resources so cost and ownership can be tracked and reported.",
+            analogy:"Tags are sticky notes on invoices — they don't change what something does, but they let finance sort the pile by department at the end of the month.",
+            terms:[["Tag","A key/value label attached to a resource"],["Budget","A spending threshold that can trigger an alert"]],
+            advanced:"Mỗi resource tối đa 50 tag. Tag có thể được gán Policy để BẮT BUỘC (ví dụ mọi resource phải có tag 'CostCenter' mới được tạo — dùng effect Deny hoặc tự động Append). Budget trong Cost Management có thể trigger Action Group khi vượt ngưỡng % (ví dụ 80%, 100%) — gửi email hoặc gọi webhook tự động.",
+            examTrap:"Dễ nhầm: Tag không tự động kế thừa từ Resource Group xuống resource bên trong (trừ khi bạn dùng Policy để tự động Append) — gán tag ở RG không có nghĩa các resource bên trong tự có tag đó.",
+            cli:"az resource tag --tags CostCenter=Marketing --ids /subscriptions/{sub-id}/resourceGroups/MyRG/providers/.../MyResource"
+          }},
+      ]},
+    { id:'storage', name:'Implement & Manage Storage', code:'RG-STORAGE', color:'#3DDC97', weeks:'Week 3',
+      lessons:[
+        {id:'l6', name:'Storage Accounts & Access Tiers',
+          detail:{
+            simple:"A Storage Account is the container for all your Azure storage services (Blobs, Files, Queues, Tables). Inside it, Access Tiers — Hot, Cool, Cold, Archive — trade off cost against retrieval speed for data you access often versus rarely.",
+            analogy:"Tiers are a filing system: Hot is the folder on your desk (fast, pricier per GB); Archive is the storage unit across town (cheap to keep, slow and costly to retrieve).",
+            terms:[["Storage Account","The container for Blob/File/Queue/Table storage"],["Access Tier","Hot/Cool/Cold/Archive — cost vs. speed trade-off"],["Redundancy (LRS/GRS)","How many copies of your data are kept, and where"]],
+            advanced:"Tên Storage Account phải là duy nhất trên TOÀN BỘ Azure (không chỉ trong subscription của bạn), chỉ chữ thường + số, 3-24 ký tự. Access Tier có thể đặt ở mức Account (mặc định cho mọi blob) hoặc override ở từng blob riêng lẻ. Chuyển tier từ Cool/Archive về Hot sớm hơn thời gian tối thiểu cam kết sẽ bị tính phí early-deletion.",
+            examTrap:"Dễ nhầm Access Tier với Redundancy: Tier (Hot/Cool/Archive) là về TẦN SUẤT truy cập; Redundancy (LRS/ZRS/GRS/GZRS) là về SỐ BẢN SAO và VỊ TRÍ lưu — đề thi hay trộn 2 khái niệm này vào chung 1 câu hỏi.",
+            cli:"az storage account create --name mystorageacct --resource-group MyRG --sku Standard_LRS --access-tier Cool"
+          }},
+        {id:'l7', name:'Blob Storage & Lifecycle Management',
+          detail:{
+            simple:"Blob storage holds unstructured data — documents, images, backups, logs — organized into containers. Lifecycle Management rules automatically move or delete blobs based on age, so old data slides to cheaper tiers or gets deleted without manual work.",
+            analogy:"It's an auto-archiving filing cabinet: after 30 days a document moves to the basement, after a year it gets shredded — you set the rule once.",
+            terms:[["Blob","A single file stored in Blob storage"],["Container","A folder-like grouping of blobs"],["Lifecycle rule","An automatic policy that moves/deletes blobs by age"]],
+            advanced:"3 loại Blob: Block Blob (file thường — ảnh, video, doc), Append Blob (chỉ ghi thêm vào cuối — dùng cho log), Page Blob (dùng làm VHD cho VM disk). Lifecycle rule dựa trên điều kiện 'Last modified > N days' — không dựa trên 'last accessed' trừ khi bạn bật tính năng access tracking riêng.",
+            examTrap:"Bẫy: Soft delete cho blob (nếu bật) vẫn giữ bản đã xoá trong X ngày để khôi phục — nhưng Lifecycle rule xoá vĩnh viễn (permanent delete) không đi qua soft delete nếu rule được cấu hình xoá thẳng.",
+            cli:"az storage account management-policy create --account-name mystorageacct --policy @policy.json"
+          }},
+        {id:'l8', name:'Azure Files & File Shares',
+          detail:{
+            simple:"Azure Files gives you a network file share in the cloud that works like a regular shared drive (SMB/NFS) — machines can mount it like a normal drive letter, instead of accessing it only through an API like Blob storage.",
+            analogy:"If Blob storage is a document management system, Azure Files is just a shared network drive people are already used to mapping on their computer.",
+            terms:[["File Share","A mountable network folder hosted in Azure"],["SMB protocol","The file-sharing protocol Windows drives typically use"]],
+            advanced:"Azure File Sync cho phép cache File Share về một Windows Server tại chỗ (on-premises) để truy cập nhanh, trong khi bản gốc vẫn nằm trên Azure — dùng khi văn phòng có mạng chậm ra internet. Có thể mount trực tiếp từ máy Windows qua giao thức SMB 3.0 miễn là port 445 không bị chặn (nhiều ISP/doanh nghiệp chặn port này ra ngoài).",
+            examTrap:"Dễ nhầm: SMB port 445 hay bị công ty/ISP chặn ra internet — nếu đề mô tả 'nhân viên ở nhà không mount được Azure File Share dù đã đúng quyền', đáp án thường là kiểm tra/mở port 445, không phải vấn đề RBAC hay Storage key.",
+            cli:"az storage share create --name myshare --account-name mystorageacct --quota 100"
+          }},
+        {id:'l9', name:'Storage Security — SAS, Keys & Networking',
+          detail:{
+            simple:"Access keys grant full control over an entire storage account — powerful, and risky if leaked. A SAS (Shared Access Signature) is a scoped, time-limited link that grants just enough access — for example, read-only for two hours — without sharing the master key.",
+            analogy:"An access key is the master key to the whole building. A SAS is a visitor pass that only opens one door, for one afternoon, then stops working.",
+            terms:[["Access Key","Full-control credential for a storage account"],["SAS token","A scoped, time-limited access link"],["Private endpoint","Restricts storage access to a private network only"]],
+            advanced:"Mỗi Storage Account có 2 Access Key (key1, key2) để bạn xoay vòng (rotate) mà không gây gián đoạn — đổi sang key2 trước, cập nhật app, rồi mới regenerate key1. Có 3 loại SAS: Account SAS (toàn account), Service SAS (1 container/blob cụ thể), User Delegation SAS (dùng Entra ID credential thay vì key, an toàn hơn). Private Endpoint gán một private IP trong VNet của bạn cho storage account, chặn truy cập qua internet công cộng hoàn toàn.",
+            examTrap:"Bẫy: SAS token vẫn hoạt động được ngay cả khi bạn đổi Access Key, TRỪ Account SAS/Service SAS (chúng được ký bằng access key nên sẽ mất hiệu lực khi key đổi) — còn User Delegation SAS ký bằng Entra ID token nên không bị ảnh hưởng khi đổi storage key.",
+            cli:"az storage container generate-sas --account-name mystorageacct --name mycontainer --permissions r --expiry 2026-08-01T00:00:00Z"
+          }},
+      ]},
+    { id:'compute', name:'Deploy & Manage Compute', code:'RG-COMPUTE', color:'#7AA7FF', weeks:'Week 4',
+      lessons:[
+        {id:'l10', name:'Virtual Machines — Sizing & Availability',
+          detail:{
+            simple:"A VM's size determines its CPU, RAM, and disk performance — and its cost. Availability options (Availability Set, Availability Zone) protect against hardware or datacenter failure by spreading VMs across separate physical infrastructure.",
+            analogy:"Availability Zones are like keeping backup generators in separate buildings across town rather than all in the same basement — one building's problem doesn't take out the others.",
+            terms:[["VM size","The CPU/RAM/disk performance tier of a virtual machine"],["Availability Zone","A physically separate datacenter within a region"],["SLA","Azure's uptime guarantee, which improves with redundancy"]],
+            advanced:"Availability Set chia VM vào Fault Domain (nhóm phần cứng/nguồn điện vật lý khác nhau, thường 2-3 FD) và Update Domain (nhóm được patch/reboot luân phiên, thường 5 UD) — bảo vệ khỏi lỗi phần cứng và bảo trì trong CÙNG 1 datacenter. Availability Zone bảo vệ ở mức cao hơn: các datacenter VẬT LÝ KHÁC NHAU trong cùng region. SLA: single VM với Premium SSD = 99.9%; Availability Set = 99.95%; 2+ VM ở Availability Zone khác nhau = 99.99%.",
+            examTrap:"Bẫy lớn nhất: KHÔNG thể vừa dùng Availability Set vừa dùng Availability Zone cho cùng 1 VM — đây là 2 cơ chế loại trừ nhau, phải chọn 1. Đề thi hay hỏi 'công ty cần bảo vệ khỏi lỗi cả datacenter' → đáp án luôn là Availability Zone, không phải Availability Set.",
+            cli:"az vm create --resource-group MyRG --name myVM --image Ubuntu2204 --zone 1 --size Standard_D2s_v3"
+          }},
+        {id:'l11', name:'VM Disks & Storage',
+          detail:{
+            simple:"Every VM needs an OS disk and can have data disks attached. Disk types — Standard HDD, Standard SSD, Premium SSD, Ultra Disk — trade off cost against performance, the same way storage access tiers do.",
+            analogy:"Choosing a disk type is like choosing tires for a car — cheaper tires save money, but a demanding workload needs the high-performance set.",
+            terms:[["OS disk","The disk holding the VM's operating system"],["Managed disk","A disk whose storage account management Azure handles for you"]],
+            advanced:"Premium SSD yêu cầu VM series hỗ trợ Premium Storage (thường có hậu tố 's' trong tên size, ví dụ Standard_D2s_v3). Ultra Disk cho phép chỉnh IOPS/throughput độc lập với dung lượng disk (trả tiền riêng cho hiệu năng), phù hợp SQL Server tải cao. Có thể resize disk (tăng dung lượng) khi VM đang chạy, nhưng đổi TIER disk (vd Standard→Premium) yêu cầu deallocate VM trước.",
+            examTrap:"Dễ nhầm: 'Resize disk' (tăng GB) làm được khi VM đang chạy, nhưng 'đổi loại disk' (Standard HDD → Premium SSD) thì KHÔNG — phải Stop (deallocate) VM trước. Đề hay hỏi tình huống cần đổi cả hai để xem bạn có phân biệt được không.",
+            cli:"az disk update --resource-group MyRG --name myDataDisk --sku Premium_LRS"
+          }},
+        {id:'l12', name:'VM Scale Sets',
+          detail:{
+            simple:"A Scale Set is a group of identical VMs that can automatically grow or shrink based on demand — autoscale — so you don't manually add servers during a traffic spike or pay for idle ones overnight.",
+            analogy:"It's a restaurant automatically calling in extra staff when it gets busy on a Friday night, then sending them home once it's quiet.",
+            terms:[["Scale Set","A group of identical, auto-scaled VMs"],["Autoscale rule","A condition that triggers adding or removing instances"]],
+            advanced:"Autoscale rule có 2 chiều: Scale-out (thêm instance khi CPU > ngưỡng, ví dụ >70% trong 10 phút) và Scale-in (giảm instance khi CPU < ngưỡng thấp). Cần đặt cooldown period giữa các lần scale để tránh 'flapping' (tăng giảm liên tục). Scale Set hỗ trợ tối đa 1000 instance với Uniform orchestration mode, hoặc dùng Flexible mode để trộn nhiều size VM khác nhau trong cùng 1 scale set.",
+            examTrap:"Bẫy: Autoscale dựa trên METRIC (CPU, memory, custom metric từ Azure Monitor), KHÔNG dựa trên lịch cố định trừ khi bạn cấu hình thêm 'Scale based on a schedule' riêng — đừng nhầm autoscale mặc định là theo giờ trong ngày.",
+            cli:"az vmss create --resource-group MyRG --name myScaleSet --image Ubuntu2204 --instance-count 2 --vm-sku Standard_D2s_v3"
+          }},
+        {id:'l13', name:'Azure App Service',
+          detail:{
+            simple:"App Service lets you run a web app or API without managing the underlying VM at all — you deploy your code and Azure handles the server, patching, and scaling.",
+            analogy:"It's the difference between renting a fully-serviced office — just move your work in — versus buying a building and hiring your own maintenance crew, which is what a VM requires.",
+            terms:[["App Service Plan","The compute tier your web app runs on"],["Deployment slot","A separate environment (e.g. staging) you can swap into production"]],
+            advanced:"App Service Plan quyết định tier (Free/Shared/Basic/Standard/Premium) — nhiều Web App có thể dùng CHUNG 1 App Service Plan để tiết kiệm chi phí, miễn không vượt quá tài nguyên của plan đó. Deployment Slot (chỉ có từ Standard tier trở lên) cho phép deploy lên 'staging', test xong rồi Swap sang 'production' gần như không downtime — vì swap chỉ đổi routing, không phải deploy lại.",
+            examTrap:"Dễ nhầm: Swap giữa các slot không làm mất cấu hình riêng của từng slot nếu bạn đánh dấu setting đó là 'slot-specific' (sticky) — nếu không đánh dấu, connection string/app setting sẽ đi theo code khi swap, gây lỗi kết nối nhầm database production/staging.",
+            cli:"az webapp deployment slot create --name myapp --resource-group MyRG --slot staging"
+          }},
+        {id:'l14', name:'Containers — ACI & AKS Basics',
+          detail:{
+            simple:"Containers package an app with everything it needs to run, so it behaves the same anywhere. Azure Container Instances (ACI) runs single containers quickly with no infrastructure to manage; AKS (Kubernetes) manages many containers together at scale.",
+            analogy:"ACI is renting a single shipping container for one job. AKS is running an entire container port — scheduling, moving, and replacing hundreds of containers automatically.",
+            terms:[["Container","A packaged app that runs consistently anywhere"],["ACI","Runs a single container with no infrastructure to manage"],["AKS","Manages many containers together (orchestration)"]],
+            advanced:"ACI tính phí theo giây, phù hợp job ngắn hạn/burst (ví dụ chạy 1 batch job rồi tắt). AKS quản lý Node Pool (nhóm VM chạy container) và có thể tự động scale cả Pod (Horizontal Pod Autoscaler) lẫn Node (Cluster Autoscaler). Azure Container Registry (ACR) thường đi kèm để lưu trữ container image riêng tư trước khi AKS/ACI kéo về chạy.",
+            examTrap:"Bẫy: Đề hay mô tả tình huống cần chạy MỘT container đơn giản, ngắn hạn, không cần quản lý lâu dài → nhiều người phản xạ chọn AKS vì quen thuộc hơn, nhưng đáp án đúng thường là ACI vì AKS 'over-engineered' cho nhu cầu đơn giản đó (tốn thời gian dựng cluster, tốn chi phí node chạy nền).",
+            cli:"az container create --resource-group MyRG --name mycontainer --image myregistry.azurecr.io/myapp:latest --cpu 1 --memory 1"
+          }},
+      ]},
+    { id:'networking', name:'Configure & Manage Networking', code:'RG-NETWORK', color:'#C99BFF', weeks:'Weeks 5–6',
+      lessons:[
+        {id:'l15', name:'Virtual Networks, Subnets & IP Addressing',
+          detail:{
+            simple:"A Virtual Network (VNet) is your own private network inside Azure. You divide it into Subnets to organize and isolate groups of resources, each with its own IP address range.",
+            analogy:"A VNet is like leasing an entire office floor; subnets are the individual rooms you divide it into for different teams.",
+            terms:[["VNet","Your private network inside Azure"],["Subnet","A subdivision of a VNet with its own IP range"],["CIDR","The notation used to define an IP address range"]],
+            advanced:"Azure luôn giữ lại 5 địa chỉ IP đầu tiên của MỖI subnet cho mục đích hệ thống (network address, default gateway, 2 địa chỉ DNS dự phòng, broadcast) — nghĩa là subnet /24 (256 IP) chỉ dùng được thực tế 251 IP cho resource. Subnet không thể đổi kích thước (resize) sau khi đã có resource bên trong mà không xoá resource trước. Mỗi subnet chỉ được gán TỐI ĐA 1 NSG và 1 Route Table.",
+            examTrap:"Bẫy tính toán hay gặp: đề cho subnet dạng /27 (32 địa chỉ) và hỏi 'dùng được bao nhiêu host' — nhiều người quên trừ 5 IP hệ thống của Azure (khác với chuẩn networking thông thường chỉ trừ 2), đáp án đúng là 32 - 5 = 27, không phải 30.",
+            cli:"az network vnet create --resource-group MyRG --name myVNet --address-prefix 10.0.0.0/16 --subnet-name subnet1 --subnet-prefix 10.0.1.0/24"
+          }},
+        {id:'l16', name:'Network Security Groups & Application Security Groups',
+          detail:{
+            simple:"A Network Security Group (NSG) is a firewall with allow/deny rules for traffic in and out of a subnet or network card. Application Security Groups (ASGs) let you group VMs by role — like 'WebServers' — so you write one NSG rule for the group instead of per IP address.",
+            analogy:"NSGs are the security guard checking IDs at each door. ASGs are like giving a whole team the same colored badge, so the guard's rule can just say 'blue badges allowed here' instead of listing every name.",
+            terms:[["NSG","A firewall of allow/deny rules for network traffic"],["ASG","Groups VMs by role so NSG rules apply to the group"],["Priority","The order NSG rules are evaluated in"]],
+            advanced:"Rule NSG có Priority từ 100-4096, số CÀNG NHỎ càng được xét TRƯỚC — Azure dừng lại ngay khi gặp rule đầu tiên khớp điều kiện, không xét tiếp các rule sau. Có sẵn Default Security Rules không thể xoá (ví dụ AllowVnetInBound, DenyAllInBound priority 65500) nhưng có thể override bằng rule custom priority thấp hơn. NSG có thể gán ở 2 chỗ: Subnet level VÀ NIC level cùng lúc — traffic phải pass qua CẢ HAI mới được cho qua.",
+            examTrap:"Bẫy kinh điển: NSG ở Subnet cho phép traffic, nhưng NSG ở NIC của VM lại chặn (hoặc ngược lại) → traffic vẫn bị chặn, vì cả 2 lớp đều phải cho phép. Đề hay mô tả 'đã mở port ở NSG level X nhưng vẫn không kết nối được' để test bạn có nhớ kiểm tra CẢ HAI lớp không.",
+            cli:"az network nsg rule create --resource-group MyRG --nsg-name myNSG --name AllowHTTP --priority 100 --access Allow --protocol Tcp --destination-port-ranges 80"
+          }},
+        {id:'l17', name:'VNet Peering & VPN Gateway',
+          detail:{
+            simple:"VNet Peering privately connects two VNets together, even across regions, so they communicate over Microsoft's backbone rather than the public internet. A VPN Gateway connects your on-premises network to Azure over an encrypted tunnel.",
+            analogy:"Peering is building a private hallway between two office floors. A VPN Gateway is a secure tunnel connecting your home office building to company HQ.",
+            terms:[["VNet Peering","A private link connecting two VNets"],["VPN Gateway","An encrypted tunnel between on-premises and Azure"]],
+            advanced:"VNet Peering KHÔNG bắc cầu (non-transitive): nếu VNet A peer với B, và B peer với C, thì A KHÔNG tự động thấy được C — phải tạo peering riêng A-C nếu cần. Peering yêu cầu address space của 2 VNet không được trùng nhau (overlap). VPN Gateway có 2 loại: Policy-based (cũ, ít dùng) và Route-based (phổ biến, hỗ trợ nhiều loại kết nối hơn) — cần chọn Gateway SKU đủ lớn vì không đổi SKU được cho một số loại gateway sau khi tạo.",
+            examTrap:"Bẫy hay gặp nhất domain này: 'Non-transitive peering' — đề mô tả 3 VNet peer bắc cầu và hỏi VNet A có kết nối được VNet C không, đáp án luôn là KHÔNG trừ khi có peering trực tiếp A-C, dù A-B và B-C đều đã peer.",
+            cli:"az network vnet peering create --name AtoB --resource-group MyRG --vnet-name VNetA --remote-vnet VNetB --allow-vnet-access"
+          }},
+        {id:'l18', name:'Load Balancer & Application Gateway',
+          detail:{
+            simple:"A Load Balancer distributes network traffic across multiple VMs so no single one gets overwhelmed, working at the network level. Application Gateway does similar distribution but understands web traffic — it can route based on URL path and handle SSL.",
+            analogy:"A Load Balancer is a traffic cop directing cars evenly into parking lot entrances. Application Gateway is a smart receptionist who reads what each visitor needs and sends them to the right department.",
+            terms:[["Load Balancer","Distributes traffic across VMs at the network level"],["Application Gateway","Distributes web traffic with URL-aware routing"],["Backend pool","The set of servers traffic is distributed to"]],
+            advanced:"Load Balancer có 2 SKU: Basic (miễn phí, không SLA, không hỗ trợ Availability Zone) và Standard (có SLA 99.99%, hỗ trợ Availability Zone, bắt buộc NSG tường minh — mặc định DENY nếu không có NSG, khác với Basic mặc định ALLOW). Application Gateway hoạt động ở Layer 7, có tính năng WAF (Web Application Firewall) tuỳ chọn để chặn tấn công như SQL injection.",
+            examTrap:"Bẫy hay thi: Basic Load Balancer mặc định CHO PHÉP traffic vào nếu không có NSG; Standard Load Balancer mặc định CHẶN traffic vào nếu không có NSG tường minh cho phép — đổi từ Basic sang Standard mà quên thêm NSG sẽ làm mất kết nối đột ngột.",
+            cli:"az network lb create --resource-group MyRG --name myLB --sku Standard --frontend-ip-name myFrontEnd --backend-pool-name myBackEndPool"
+          }},
+        {id:'l19', name:'Azure DNS & Name Resolution',
+          detail:{
+            simple:"Azure DNS translates human-friendly names, like myapp.com, into IP addresses so resources can find each other, both on the public internet and privately inside your VNets.",
+            analogy:"DNS is the phone book — you look up a name and get the number, the IP address, to actually dial.",
+            terms:[["DNS zone","A container for DNS records for a domain"],["Private DNS zone","Name resolution that only works inside your VNet"]],
+            advanced:"Private DNS Zone phải được LINK tường minh vào từng VNet cần dùng nó (Virtual Network Link) — không tự động áp dụng cho mọi VNet trong subscription. Có thể bật 'Auto registration' để VM tự động có DNS record khi được tạo trong VNet đã link. Azure-provided DNS mặc định (168.63.129.16) chỉ resolve được tên nội bộ Azure, không dùng cho domain công ty riêng — cần Private DNS Zone hoặc custom DNS server cho việc đó.",
+            examTrap:"Dễ nhầm: Tạo xong Private DNS Zone nhưng quên bước Link VNet — record vẫn tồn tại nhưng VM trong VNet không resolve được, vì Zone chỉ có 'thẩm quyền' (authoritative) trong các VNet đã được link tường minh.",
+            cli:"az network private-dns link vnet create --resource-group MyRG --zone-name internal.contoso.com --name MyLink --virtual-network MyVNet --registration-enabled true"
+          }},
+      ]},
+    { id:'monitor-mock', name:'Monitor & Maintain Resources', code:'RG-MONITOR', color:'#E8607A', weeks:'Weeks 7–8',
+      lessons:[
+        {id:'l20', name:'Azure Monitor, Log Analytics & Alerts',
+          detail:{
+            simple:"Azure Monitor collects metrics and logs from your resources. Log Analytics lets you query that data — like 'show me all failed logins today.' Alerts automatically notify you, or trigger an action, when a condition is met, instead of you checking dashboards manually.",
+            analogy:"It's a building's security camera system with a searchable recording archive, plus an automatic alarm that texts you the moment something looks wrong.",
+            terms:[["Metric","A numeric value tracked over time, like CPU %"],["Log Analytics Workspace","Where logs are stored and queried"],["Alert rule","A condition that triggers a notification or action"]],
+            advanced:"Metric là dữ liệu số theo thời gian, lưu trong Metric database riêng, truy vấn nhanh, giữ giới hạn thời gian ngắn hơn Log. Log dùng ngôn ngữ truy vấn KQL (Kusto Query Language) trong Log Analytics Workspace, linh hoạt hơn nhưng chậm hơn Metric. Alert rule gồm 3 phần: Scope (resource nào), Condition (điều kiện gì), Action Group (làm gì khi trigger — email, SMS, webhook, Azure Function).",
+            examTrap:"Dễ nhầm: Metric Alert phản ứng gần như tức thời (giây/phút), còn Log Alert (dựa trên KQL query) có độ trễ lớn hơn vì phải chạy query theo chu kỳ (ví dụ mỗi 5-15 phút) — đề hay hỏi 'cần cảnh báo NGAY LẬP TỨC khi CPU vượt ngưỡng' → đáp án là Metric Alert, không phải Log Alert.",
+            cli:"az monitor metrics alert create --name cpu-alert --resource-group MyRG --scopes /subscriptions/{sub-id}/resourceGroups/MyRG/providers/Microsoft.Compute/virtualMachines/myVM --condition \"avg Percentage CPU > 90\""
+          }},
+        {id:'l21', name:'Backup & Site Recovery',
+          detail:{
+            simple:"Azure Backup takes scheduled copies of VMs or files so you can restore after accidental deletion or corruption. Azure Site Recovery replicates entire VMs to another region so, if a whole datacenter goes down, you can fail over and keep running.",
+            analogy:"Backup is a nightly photocopy of your files kept in a drawer. Site Recovery is a fully staffed duplicate office in another city, ready to take over the same afternoon if the main office burns down.",
+            terms:[["Recovery Services Vault","Where backups and replication data are stored"],["Failover","Switching operation to the replicated site"]],
+            advanced:"Cả Backup và Site Recovery đều dùng chung Recovery Services Vault để lưu trữ. Backup có RPO (Recovery Point Objective) tính bằng GIỜ/NGÀY (dựa trên lịch backup, ví dụ mỗi 24h) — mất dữ liệu tối đa bằng khoảng cách giữa 2 lần backup. Site Recovery có RPO tính bằng GIÂY/PHÚT (replication gần liên tục) vì mục tiêu là failover nhanh, không phải chỉ lưu trữ.",
+            examTrap:"Bẫy kinh điển của domain này: đề mô tả tình huống cần 'khôi phục hoạt động trong vài phút nếu cả region bị sập' → đáp án PHẢI là Site Recovery, không phải Backup — nhiều người chọn nhầm Backup vì quen thuộc hơn, nhưng Backup không được thiết kế cho failover nhanh diện rộng.",
+            cli:"az backup protection enable-for-vm --resource-group MyRG --vault-name myVault --vm myVM --policy-name DefaultPolicy"
+          }},
+        {id:'l22', name:'Update Management & Maintenance',
+          detail:{
+            simple:"Azure Update Manager tracks which VMs are missing security patches and lets you schedule patching across many machines at once, instead of updating each one by hand.",
+            analogy:"It's a fleet manager who checks every company car's maintenance status on one dashboard and books all the oil changes in one batch, rather than each driver remembering on their own.",
+            terms:[["Update Manager","Tracks and schedules patching across VMs"],["Maintenance window","A scheduled time patching is allowed to run"]],
+            advanced:"Update Manager hỗ trợ cả Windows lẫn Linux, có thể lên lịch Maintenance Window (ví dụ chỉ patch vào 2h sáng Chủ Nhật) để tránh giờ cao điểm. Có thể nhóm VM theo Dynamic Scope (theo tag/resource group) để áp policy patch hàng loạt thay vì chọn từng máy. Update Manager cho biết compliance state: Compliant, Non-compliant, Unknown.",
+            examTrap:"Dễ nhầm: Update Manager quản lý patch OS-level (Windows Update, yum/apt), KHÔNG quản lý update firmware hay update ứng dụng bên trong VM — đề hay lồng ghép câu hỏi về 'cập nhật app' để xem bạn có phân biệt được phạm vi công cụ này không.",
+            cli:"az vm assess-patches --resource-group MyRG --name myVM"
+          }},
+        {id:'l23', name:'Mock Exam 1 — Full Review',
+          detail:{
+            simple:"A timed, full-length practice exam covering all 5 domains at real exam proportions. The goal isn't just the score — it's finding out exactly which domains need another pass before the real thing.",
+          }},
+        {id:'l24', name:'Mock Exam 2 — Weak-Area Deep Dive',
+          detail:{
+            simple:"A second mock exam focused specifically on whatever came out weakest in Mock Exam 1 and in your quiz watchlist — your last close-the-gaps pass before the real exam.",
+          }},
+      ]},
+  ];
+
+  // Starter question bank — tagged by lesson id, used for today's-topic + spaced repetition warm-up.
+  const QUESTIONS = [
+    {lesson:'l1', q:"You need to apply one consistent setting across 12 related Azure resources at once. What's the most direct way to group them for that?", opts:["Put them in the same Resource Group","Give them the same VM size","Rename them alphabetically","Put them in the same time zone"], a:0, why:"A Resource Group is the container ARM uses to manage, deploy, and apply settings/policies to related resources together."},
+    {lesson:'l1', q:"What sits directly above Resource Groups in the Azure hierarchy?", opts:["Region","Subscription","Tenant","Availability Zone"], a:1, why:"Hierarchy is Management Group → Subscription → Resource Group → Resource. A Subscription is the billing/access boundary that contains Resource Groups."},
+    {lesson:'l2', q:"Someone joins the company. Where do you create their sign-in account for Azure?", opts:["Resource Group","Microsoft Entra ID","Storage Account","Network Security Group"], a:1, why:"Microsoft Entra ID (formerly Azure AD) is Azure's identity service — it's where user and device identities live."},
+    {lesson:'l2', q:"What's the quickest way to apply the same access rules to 20 people instead of one at a time?", opts:["Put them in a Group and assign access to the Group","Give each person a separate subscription","Rename their accounts the same","Put them in the same resource group"], a:0, why:"Groups let you manage access for many users at once instead of repeating the same assignment 20 times."},
+    {lesson:'l3', q:"What does RBAC actually control?", opts:["How much a resource costs","Who can do what, on which resource, at which scope","How fast a VM runs","Which region a resource lives in"], a:1, why:"Role-Based Access Control = Who (identity) + What (role/permissions) + Where (scope: Management Group/Subscription/RG/Resource)."},
+    {lesson:'l4', q:"Your company wants to block anyone from creating storage accounts outside one approved region. What enforces that automatically, going forward?", opts:["Azure Policy","RBAC role assignment","A Resource Group name","A support ticket"], a:0, why:"Azure Policy evaluates and enforces rules on resources — RBAC controls who can act, Policy controls what's allowed to exist/be configured."},
+    {lesson:'l5', q:"Finance wants to see how much the Marketing team's resources cost, across several resource groups. What should have been set up from the start?", opts:["Tags on the resources","A stronger password policy","More Availability Zones","A bigger VM size"], a:0, why:"Tags let you attribute cost and ownership across resources regardless of which resource group they sit in."},
+    {lesson:'l6', q:"You must keep compliance logs for 7 years but almost never expect to open them. Which tier is most cost-efficient?", opts:["Hot","Cool","Archive","Premium SSD"], a:2, why:"Archive is the cheapest tier for storage, trading off slow and costlier retrieval — ideal for data you rarely, if ever, need to open."},
+    {lesson:'l7', q:"You want blobs older than 90 days moved to a cheaper tier automatically, with no script running daily.", opts:["A Lifecycle Management rule","A stronger access key","An Availability Zone","A Load Balancer rule"], a:0, why:"Lifecycle Management rules automate moving or deleting blobs by age without manual or scripted intervention."},
+    {lesson:'l8', q:"Your finance team wants a shared drive letter multiple on-premises machines can map to, hosted in Azure.", opts:["Blob storage container","Azure Files share","Storage access key","Availability Set"], a:1, why:"Azure Files provides an SMB/NFS network share that mounts like a normal drive — Blob storage is API-accessed, not mountable the same way."},
+    {lesson:'l9', q:"You need to give a contractor read-only access to one blob container for the next 24 hours only, without sharing your storage account key.", opts:["Generate a SAS token","Send them the access key","Make the container fully public","Create a new subscription"], a:0, why:"A SAS token grants scoped, time-limited access without exposing the full-control master key."},
+    {lesson:'l10', q:"Two identical VMs running the same app must not go down together if one Azure datacenter loses power.", opts:["Put them in the same Availability Set only","Put them in separate Availability Zones","Give them bigger disks","Put them in the same subnet"], a:1, why:"Availability Zones are physically separate datacenters within a region — a failure in one doesn't affect VMs in another zone."},
+    {lesson:'l11', q:"A database VM needs the fastest possible disk performance for a demanding workload.", opts:["Standard HDD","Standard SSD","Premium SSD or Ultra Disk","Archive tier"], a:2, why:"Premium SSD/Ultra Disk are the highest-performance managed disk options, suited to demanding, latency-sensitive workloads."},
+    {lesson:'l12', q:"Your web app gets 10x traffic during a flash sale and needs extra servers automatically, then scale back down after.", opts:["A single larger VM","A VM Scale Set with autoscale","A Storage Account","A VPN Gateway"], a:1, why:"Scale Sets with autoscale rules add or remove identical VM instances automatically based on demand."},
+    {lesson:'l13', q:"You need to deploy a web API quickly and don't want to manage patching or the underlying OS at all.", opts:["A Virtual Machine","Azure App Service","A Storage Account","An NSG"], a:1, why:"App Service runs your code directly — Azure handles the server, OS patching, and scaling for you."},
+    {lesson:'l14', q:"You need to run one quick containerized job with no ongoing infrastructure to manage.", opts:["Azure Container Instances (ACI)","AKS","A VM Scale Set","App Service Plan"], a:0, why:"ACI runs single containers on demand with no cluster or infrastructure to manage — AKS is for orchestrating many containers at scale."},
+    {lesson:'l15', q:"You want to split one Virtual Network into a 'web' section and a 'database' section that can be secured separately.", opts:["Create two Subscriptions","Create Subnets within the VNet","Create two Storage Accounts","Add more Availability Zones"], a:1, why:"Subnets subdivide a VNet so different groups of resources can be organized and secured independently."},
+    {lesson:'l16', q:"You want one firewall rule that instantly applies to every VM tagged as a web server, without listing each IP address.", opts:["A single NSG rule per VM","An Application Security Group referenced in an NSG rule","A Resource Group","A Load Balancer"], a:1, why:"ASGs let you group VMs by role so one NSG rule can target the whole group instead of individual IPs."},
+    {lesson:'l17', q:"Two VNets in different regions need to talk to each other privately, without going over the public internet.", opts:["VNet Peering","A Load Balancer","Azure DNS","A Storage Account"], a:0, why:"VNet Peering privately connects VNets over Microsoft's backbone network rather than the public internet."},
+    {lesson:'l18', q:"Incoming web traffic needs to be routed to different backend servers based on the URL path, like /images vs /api.", opts:["A basic Load Balancer","Application Gateway","A VPN Gateway","Azure DNS"], a:1, why:"Application Gateway operates at the web layer and can route based on URL path — a basic Load Balancer only works at the network level."},
+    {lesson:'l19', q:"You've deployed a new app and need myapp.internal to resolve only inside your VNet, not on the public internet.", opts:["A public DNS zone","A Private DNS zone","A SAS token","An NSG rule"], a:1, why:"Private DNS zones resolve names only within the linked VNet(s), keeping internal names off the public internet."},
+    {lesson:'l20', q:"You want Azure to text you automatically the moment CPU usage on a VM exceeds 90%, instead of checking a dashboard yourself.", opts:["Set up an Alert rule with an Action Group","Enable Azure Policy","Create a new Resource Group","Add a data disk"], a:0, why:"Alert rules watch a metric or log condition and trigger notifications or actions via an Action Group automatically."},
+    {lesson:'l21', q:"An entire region hosting your production VMs goes offline. You need the app running from another region within minutes.", opts:["Restore from Azure Backup","Fail over using Azure Site Recovery","Create a new Storage Account","Apply an Azure Policy"], a:1, why:"Site Recovery keeps a live replicated copy in another region ready for fast failover — Backup is for restoring point-in-time copies, which is slower and not built for full-region failover."},
+    {lesson:'l22', q:"You manage 200 VMs and want to see, in one place, exactly which ones are missing critical security patches.", opts:["Azure Update Manager","Azure Policy","Azure DNS","Load Balancer"], a:0, why:"Update Manager gives a consolidated view of patch compliance and lets you schedule updates across many VMs at once."},
+
+    // ---- Troubleshooting scenario questions (dạng khó nhất trong đề thật) ----
+    {lesson:'l16', type:'troubleshoot', q:"Một VM web server không nhận được traffic từ internet dù NSG ở mức Subnet đã có rule Allow port 80/443. Bạn đã kiểm tra Subnet NSG, mọi thứ đều đúng. Bước tiếp theo nên kiểm tra gì?", opts:["Kiểm tra NSG gắn ở NIC-level của chính VM đó","Tạo lại Resource Group","Đổi Access Tier của storage","Xoá và tạo lại Subscription"], a:0, why:"Traffic phải pass qua CẢ NSG ở Subnet-level LẪN NIC-level. Đúng ở 1 lớp không đủ — đây là lỗi troubleshooting rất hay gặp trong đề thi thật."},
+    {lesson:'l17', type:'troubleshoot', q:"VNet A peer với VNet B, VNet B peer với VNet C. Một VM trong VNet A báo không ping được VM trong VNet C, dù cả 2 peering đều 'Connected'. Nguyên nhân nhiều khả năng nhất là gì?", opts:["VNet Peering không bắc cầu (non-transitive) — cần peering trực tiếp A-C","NSG đang chặn toàn bộ ICMP","Address space bị trùng","VPN Gateway chưa được tạo"], a:0, why:"Đây là đặc điểm cố hữu của VNet Peering: không tự động bắc cầu qua VNet trung gian, dù từng cặp peering riêng lẻ đều hoạt động bình thường."},
+    {lesson:'l9', type:'troubleshoot', q:"Một ứng dụng dùng SAS token để đọc blob đột nhiên báo lỗi 403 Forbidden, dù token ghi hạn dùng đến cuối tháng sau. Khả năng cao nhất là gì?", opts:["Access Key mà SAS được ký đã bị regenerate/xoay vòng","Storage Account đã đổi tên","Blob đã bị nén lại","Subscription hết hạn"], a:0, why:"Account SAS/Service SAS được ký bằng Access Key — nếu key đó bị regenerate, mọi SAS ký bằng key cũ lập tức mất hiệu lực, bất kể ngày hết hạn ghi trong token."},
+    {lesson:'l13', type:'troubleshoot', q:"Sau khi Swap deployment slot từ staging sang production, ứng dụng production bắt đầu kết nối nhầm vào database của staging. Nguyên nhân nhiều khả năng nhất?", opts:["Connection string chưa được đánh dấu là 'slot setting' (sticky)","App Service Plan sai tier","NSG chặn kết nối database","Region của Web App bị đổi"], a:0, why:"Nếu setting không được đánh dấu sticky, nó sẽ đi theo CODE khi swap thay vì ở lại với slot — dẫn đến production vô tình dùng cấu hình của staging."},
+    {lesson:'l19', type:'troubleshoot', q:"Bạn tạo Private DNS Zone 'internal.contoso.com' và thêm record đúng, nhưng VM trong VNet vẫn không resolve được tên đó. Bạn đã kiểm tra record tồn tại. Bước tiếp theo?", opts:["Kiểm tra đã Link Private DNS Zone vào đúng VNet chưa","Xoá Zone và tạo lại","Đổi VM sang size lớn hơn","Kiểm tra lại Access Tier"], a:0, why:"Private DNS Zone chỉ có hiệu lực trong các VNet đã được Link tường minh (Virtual Network Link) — record tồn tại không có nghĩa VNet đã được liên kết để resolve nó."},
+  ];
+
+  // ---- Reference Library: bảng so sánh dịch vụ dễ nhầm + giới hạn dịch vụ ----
+  const COMPARISON_TABLES = [
+    {
+      title:"Load Balancer: Basic vs Standard",
+      columns:["Tiêu chí","Basic","Standard","Khi nào dùng"],
+      rows:[
+        ["SLA","Không có SLA","99.99%","Production quan trọng → luôn chọn Standard"],
+        ["Availability Zone","Không hỗ trợ","Có hỗ trợ","Cần chịu lỗi cả zone → Standard"],
+        ["NSG mặc định","Cho phép nếu không có NSG","Chặn nếu không có NSG tường minh","Nhớ thêm NSG khi nâng cấp lên Standard"],
+        ["Chi phí","Miễn phí","Tính phí theo giờ + luật lượng","Basic phù hợp demo/học tập, không phù hợp production"],
+      ]
+    },
+    {
+      title:"NSG vs ASG vs Azure Firewall",
+      columns:["Tiêu chí","NSG","ASG","Azure Firewall"],
+      rows:[
+        ["Cấp độ","Subnet / NIC","Gắn kèm NSG (nhóm VM theo vai trò)","Toàn VNet / Hub"],
+        ["Loại luật","Allow/Deny theo port, IP","Không tự có luật — chỉ là nhãn nhóm","Allow/Deny + lọc theo ứng dụng/FQDN"],
+        ["Trạng thái (stateful)","Có","Có (kế thừa từ NSG)","Có, kèm threat intelligence"],
+        ["Khi nào dùng","Kiểm soát cơ bản vào/ra 1 subnet","Nhóm nhiều VM cùng vai trò để viết rule gọn hơn","Kiểm soát tập trung, lọc theo domain, log chi tiết cho cả hub nhiều VNet"],
+      ]
+    },
+    {
+      title:"Backup vs Site Recovery",
+      columns:["Tiêu chí","Azure Backup","Azure Site Recovery"],
+      rows:[
+        ["Mục đích","Khôi phục sau xoá/hỏng dữ liệu","Failover khi cả region/datacenter sập"],
+        ["RPO (mất dữ liệu tối đa)","Giờ - ngày (theo lịch backup)","Giây - phút (gần liên tục)"],
+        ["Tốc độ khôi phục","Chậm hơn — restore từ bản snapshot","Nhanh — failover gần như tức thời"],
+        ["Khi nào dùng","Lỡ tay xoá VM/file, cần bản cũ","Cần duy trì hoạt động dù mất cả region"],
+      ]
+    },
+    {
+      title:"Availability Set vs Availability Zone vs Scale Set",
+      columns:["Tiêu chí","Availability Set","Availability Zone","VM Scale Set"],
+      rows:[
+        ["Bảo vệ khỏi","Lỗi phần cứng/nguồn trong 1 datacenter","Lỗi cả 1 datacenter (khác datacenter vật lý)","Không phải mục đích chính — mục đích là autoscale"],
+        ["SLA","99.95%","99.99%","Tuỳ cấu hình, có thể kết hợp với Zone"],
+        ["Có thể dùng chung không?","Không thể dùng chung với Zone cho 1 VM","Không thể dùng chung với Availability Set","Có thể cấu hình Scale Set trải trên nhiều Zone"],
+        ["Khi nào dùng","Chấp nhận rủi ro mất cả datacenter, chỉ cần chống lỗi phần cứng lẻ tẻ","Cần chịu được cả datacenter sập","Tải lên xuống thất thường, cần tự động thêm/bớt máy"],
+      ]
+    },
+  ];
+
+  const SERVICE_LIMITS = [
+    ["Số subnet tối đa / VNet","3.000 (giới hạn ở mức region, không phải cứng mỗi VNet)"],
+    ["Số IP hệ thống Azure giữ lại / subnet","5 (network, gateway, 2 DNS, broadcast)"],
+    ["Số VNet Peering / VNet","tối đa 500"],
+    ["Kích thước Resource Group tối đa","800 resource cùng loại API version trong 1 RG (giới hạn thực tế theo loại resource)"],
+    ["Số Storage Account / Subscription (mặc định)","250 (có thể xin nâng lên)"],
+    ["Độ dài tên Storage Account","3-24 ký tự, chỉ chữ thường + số, duy nhất toàn Azure"],
+    ["Số NSG rule tối đa / NSG","1.000"],
+    ["Số Tag / resource","50"],
+    ["Số Access Key / Storage Account","2 (key1, key2)"],
+    ["Số Management Group hierarchy tối đa","6 cấp"],
+    ["VM Scale Set (Uniform mode) tối đa","1.000 instance"],
+  ];
+
+  // ---- Hands-on labs (dạng checklist thao tác, không có ảnh chụp thật — mô tả chính xác từng bước) ----
+  const LABS = {
+    'identity-gov':{
+      title:"Lab: Tạo Resource Group + gán RBAC",
+      steps:[
+        "Đăng nhập portal.azure.com bằng tài khoản Azure Free Tier của bạn",
+        "Vào Home → Resource groups → + Create, đặt tên 'rg-lab-01', chọn region Southeast Asia",
+        "Vào Resource Group vừa tạo → Access control (IAM) → + Add → Add role assignment",
+        "Chọn role 'Reader', gán cho chính tài khoản của bạn (hoặc một user test) ở scope Resource Group",
+        "Vào lại IAM → View access → xác nhận role assignment đã xuất hiện đúng scope",
+      ]
+    },
+    'storage':{
+      title:"Lab: Tạo Storage Account + thử SAS token",
+      steps:[
+        "Home → Storage accounts → + Create, đặt tên duy nhất, chọn Standard_LRS, Access tier = Hot",
+        "Vào Containers → + Container, tạo container 'test-container', upload 1 file bất kỳ",
+        "Vào file vừa upload → Generate SAS → chọn quyền Read, hết hạn sau 1 giờ → Generate SAS token and URL",
+        "Copy URL vừa tạo, mở bằng trình duyệt ẩn danh (không đăng nhập) — xác nhận tải được file",
+        "Quay lại Access keys → Regenerate key1 → thử lại URL cũ, quan sát lỗi 403 nếu SAS ký bằng key1",
+      ]
+    },
+    'compute':{
+      title:"Lab: Tạo VM + thử đổi disk tier",
+      steps:[
+        "Home → Virtual machines → + Create, chọn image Ubuntu, size Standard_D2s_v3, region bất kỳ",
+        "Sau khi VM chạy, vào Disks → chọn OS disk → Size + performance",
+        "Thử đổi Account type từ Standard SSD sang Premium SSD khi VM ĐANG chạy — quan sát thông báo yêu cầu Stop VM trước",
+        "Stop (deallocate) VM → thực hiện lại thao tác đổi tier → xác nhận thành công",
+        "Start lại VM, kiểm tra hiệu năng disk mới trong Overview",
+      ]
+    },
+    'networking':{
+      title:"Lab: Tạo VNet + Subnet + NSG, thử bẫy 2 lớp NSG",
+      steps:[
+        "Home → Virtual networks → + Create, đặt address space 10.0.0.0/16, tạo subnet 10.0.1.0/24",
+        "Tạo Network Security Group riêng, thêm rule Allow Inbound port 3389 (RDP) hoặc 22 (SSH), priority 100",
+        "Gán NSG này vào Subnet vừa tạo (Subnetsassociate NSG)",
+        "Tạo thêm 1 NSG khác, KHÔNG thêm rule Allow cho port đó, gán vào NIC của VM nằm trong subnet",
+        "Thử kết nối vào VM — quan sát traffic vẫn bị chặn dù Subnet NSG đã cho phép, vì NIC NSG chưa cho phép",
+      ]
+    },
+    'monitor-mock':{
+      title:"Lab: Tạo Alert rule cảnh báo CPU cao",
+      steps:[
+        "Vào VM đã tạo ở lab trước → Monitoring → Alerts → + Create alert rule",
+        "Chọn Signal 'Percentage CPU', điều kiện 'Greater than 80', aggregation Average, trong 5 phút",
+        "Tạo Action Group mới, thêm email của bạn để nhận thông báo",
+        "Lưu alert rule, tạo tải giả (ví dụ chạy stress-ng trong VM Linux) để kích hoạt cảnh báo",
+        "Kiểm tra email nhận được cảnh báo — xoá alert rule sau khi test xong để tránh phát sinh chi phí không cần thiết",
+      ]
+    }
+  };
+
+  // ---- Case-study clusters cho đề thi thử (1 tình huống, nhiều câu hỏi liên quan) ----
+  const CASE_STUDIES = [
+    {
+      id:'cs1', domain:'networking',
+      scenario:"Công ty Contoso có VNet-Prod (10.0.0.0/16) chứa 2 subnet: subnet-web (10.0.1.0/24) và subnet-db (10.0.2.0/24). Đội bảo mật yêu cầu: subnet-db chỉ được nhận traffic từ subnet-web, không được truy cập trực tiếp từ internet. Đồng thời công ty có VNet-DR ở region khác dùng cho disaster recovery, cần kết nối riêng tư với VNet-Prod.",
+      questions:[
+        {q:"Để chặn subnet-db nhận traffic trực tiếp từ internet nhưng vẫn cho phép từ subnet-web, bạn nên dùng gì?", opts:["NSG trên subnet-db với rule Allow từ dải IP subnet-web, Deny còn lại","Xoá subnet-db","Một Storage Account riêng","Một Load Balancer Basic"], a:0, why:"NSG cho phép định nghĩa rule allow/deny theo dải IP nguồn — cho phép đúng subnet-web và chặn phần còn lại là cách chuẩn để cô lập subnet-db."},
+        {q:"Để VNet-Prod và VNet-DR (khác region) kết nối riêng tư với nhau, không qua internet công cộng, giải pháp phù hợp nhất là gì?", opts:["VNet Peering (hỗ trợ cả liên region)","VPN Gateway","Một Storage Account chung","Azure DNS"], a:0, why:"VNet Peering hỗ trợ kết nối liên vùng (global peering) và đi qua backbone riêng của Microsoft, phù hợp hơn VPN Gateway (vốn dùng cho kết nối on-premises)."},
+        {q:"Vài tháng sau, công ty thêm VNet-Branch, peer với VNet-DR. Nhân viên ở VNet-Branch báo không truy cập được VNet-Prod. Nguyên nhân?", opts:["VNet Peering không bắc cầu — cần peering trực tiếp Branch-Prod","subnet-db bị xoá","NSG hết hạn","Address space hết dung lượng"], a:0, why:"Đây chính là đặc điểm non-transitive của VNet Peering — Branch peer với DR không có nghĩa Branch tự động thấy được Prod."},
+      ]
+    },
+    {
+      id:'cs2', domain:'compute',
+      scenario:"Fabrikam vận hành một web app trên 3 VM giống hệt nhau để chịu tải cao điểm buổi tối. Vào ban ngày, lượng truy cập rất thấp và công ty muốn tiết kiệm chi phí. Ứng dụng cũng cần đảm bảo không downtime khi Azure bảo trì phần cứng.",
+      questions:[
+        {q:"Để tự động thêm VM vào buổi tối và giảm vào ban ngày mà không cần can thiệp thủ công, giải pháp phù hợp nhất là gì?", opts:["VM Scale Set với Autoscale rule theo CPU hoặc lịch","Availability Set","3 VM đơn lẻ cấu hình giống nhau","Azure Policy"], a:0, why:"Scale Set với autoscale (theo metric hoặc theo lịch) là cơ chế được thiết kế riêng cho đúng nhu cầu tăng giảm số lượng VM tự động này."},
+        {q:"Để đảm bảo không phải toàn bộ VM cùng bị ảnh hưởng khi Azure bảo trì phần cứng trong CÙNG một datacenter, Scale Set nên được cấu hình thêm gì?", opts:["Trải các instance qua nhiều Fault Domain/Update Domain hoặc nhiều Availability Zone","Đổi sang Basic Load Balancer","Xoá Load Balancer","Dùng chung 1 Fault Domain cho tất cả"], a:0, why:"Trải instance qua nhiều Fault Domain (hoặc Availability Zone nếu cần bảo vệ mức datacenter) tránh việc toàn bộ VM cùng nằm trên phần cứng bảo trì cùng lúc."},
+      ]
+    },
+  ];
+
+  function domainOfLesson(lessonId){
+    for(const rg of CURRICULUM){ if(rg.lessons.some(l => l.id === lessonId)) return rg.id; }
+    return null;
+  }
+
+  // Nếu Supabase chưa được cấu hình, app vẫn chạy được ở chế độ session-only
+  // (giống bản demo trước) để bạn test giao diện trước khi nối backend thật.
+  let sessionNoticeShown = false;
+  function showSessionNotice(){
+    if(sessionNoticeShown || supabaseConfigured) return;
+    sessionNoticeShown = true;
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed; bottom:16px; right:16px; background:#232B4E; border:1px solid rgba(240,168,87,0.4); color:#EDEEF3; font-family:Inter,sans-serif; font-size:12.5px; padding:10px 14px; border-radius:10px; max-width:280px; z-index:99;';
+    el.textContent = "Chưa cấu hình Supabase — đang chạy chế độ session-only, tiến độ sẽ mất khi tải lại trang.";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 7000);
+  }
+
+  let currentUser = null;
+  let memoryFallback = null; // dùng khi chưa cấu hình Supabase
+
+  const store = {
+    async get(fallback){
+      if(!supabaseConfigured || !currentUser) return memoryFallback || fallback;
+      const { data, error } = await sb.from('progress').select('*').eq('user_id', currentUser.id).maybeSingle();
+      if(error || !data) return fallback;
+      return {
+        completed: data.completed_lessons || {},
+        watch: data.watchlist || {},
+        streak: data.streak || 0,
+        lastSessionDate: data.last_session_date || null,
+        openRg: null,
+        expandedLesson: null,
+        notes: data.notes || {},
+        studyMinutes: data.study_minutes || 30,
+        srs: data.srs || {},
+        labProgress: data.lab_progress || {}
+      };
+    },
+    async set(value){
+      if(!supabaseConfigured || !currentUser){
+        memoryFallback = value;
+        showSessionNotice();
+        return;
+      }
+      const { error } = await sb.from('progress').upsert({
+        user_id: currentUser.id,
+        completed_lessons: value.completed,
+        watchlist: value.watch,
+        streak: value.streak,
+        last_session_date: value.lastSessionDate,
+        notes: value.notes,
+        study_minutes: value.studyMinutes,
+        srs: value.srs,
+        lab_progress: value.labProgress,
+        updated_at: new Date().toISOString()
+      });
+      if(error) console.error('Lỗi lưu tiến độ lên Supabase:', error);
+    }
+  };
+
+  // ---- Đăng nhập bằng magic link ----
+  async function initAuth(){
+    if(!supabaseConfigured){
+      // Chưa nối Supabase — bỏ qua màn hình đăng nhập, vào thẳng app để test giao diện.
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('appRoot').classList.add('show');
+      boot();
+      return;
+    }
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){
+      currentUser = session.user;
+      checkLicenseAndEnter();
+    } else {
+      document.getElementById('authScreen').style.display = 'block';
+    }
+    sb.auth.onAuthStateChange((event, session) => {
+      if(session && !currentUser){
+        currentUser = session.user;
+        checkLicenseAndEnter();
+      }
+      if(event === 'SIGNED_OUT'){
+        currentUser = null;
+        document.getElementById('appRoot').classList.remove('show');
+        document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('pendingScreen').style.display = 'none';
+        document.getElementById('authScreen').style.display = 'block';
+      }
+    });
+  }
+
+  async function checkLicenseAndEnter(){
+    if(!supabaseConfigured){ showApp(); return; } // chế độ demo chưa nối Supabase — bỏ qua gate
+    const email = currentUser.email;
+    const { data, error } = await sb.from('licenses').select('status').eq('email', email).eq('status', 'active').maybeSingle();
+    if(data && !error){
+      showApp();
+    } else {
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('pendingScreen').style.display = 'block';
+    }
+  }
+
+  function showApp(){
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('pendingScreen').style.display = 'none';
+    document.getElementById('appRoot').classList.add('show');
+    document.getElementById('logoutBtn').style.display = 'block';
+    boot();
+  }
+
+  document.getElementById('recheckLicenseBtn').addEventListener('click', checkLicenseAndEnter);
+  document.getElementById('pendingLogoutBtn').addEventListener('click', async () => {
+    if(supabaseConfigured) await sb.auth.signOut();
+    document.getElementById('pendingScreen').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'block';
+  });
+
+  document.getElementById('authSendBtn').addEventListener('click', async () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const msg = document.getElementById('authMsg');
+    if(!email){ msg.textContent = 'Nhập email trước đã.'; msg.className='auth-msg error'; return; }
+    if(!supabaseConfigured){ msg.textContent = 'Chưa cấu hình Supabase trong file này.'; msg.className='auth-msg error'; return; }
+    msg.textContent = 'Đang gửi...'; msg.className = 'auth-msg';
+    const { error } = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.href } });
+    if(error){ msg.textContent = 'Có lỗi: ' + error.message; msg.className = 'auth-msg error'; }
+    else { msg.textContent = 'Đã gửi link đăng nhập — kiểm tra email của bạn.'; msg.className = 'auth-msg ok'; }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    if(supabaseConfigured) await sb.auth.signOut();
+  });
+
+  let state = null;
+
+  function defaultState(){
+    const doneIds = {};
+    CURRICULUM.forEach(rg => rg.lessons.forEach(l => { if(l.done) doneIds[l.id] = true; }));
+    return {
+      completed: doneIds,
+      watch: {},           // lessonId -> {name, misses}
+      streak: 0,
+      lastSessionDate: null,
+      openRg: null,
+      expandedLesson: null,
+      notes: {},          // lessonId -> free text
+      studyMinutes: 30,
+      srs: {},            // lessonId -> {interval, dueDate, ease}
+      labProgress: {}      // domainId -> {stepIndex: true}
+    };
+  }
+
+  function lessonById(id){
+    for(const rg of CURRICULUM){ for(const l of rg.lessons){ if(l.id===id) return l; } }
+    return null;
+  }
+
+  function renderDetailPanel(l, isDone){
+    const d = l.detail || {};
+    let blocks = '';
+    if(d.simple){
+      blocks += `<div class="detail-block"><div class="detail-label">Tầng 1 · Simple Explanation</div><div class="detail-text">${d.simple}</div></div>`;
+    }
+    if(d.analogy){
+      blocks += `<div class="detail-block"><div class="detail-label">Real-life analogy</div><div class="detail-text">${d.analogy}</div></div>`;
+    }
+    if(d.terms && d.terms.length){
+      blocks += `<div class="detail-block"><div class="detail-label">Key terms glossary</div><div class="terms-grid">${
+        d.terms.map(([term,def]) => `<div class="term-row"><span class="term-name">${term}</span> — ${def}</div>`).join('')
+      }</div></div>`;
+    }
+    if(d.advanced){
+      blocks += `<div class="detail-block"><div class="detail-label">Tầng 2 · Chi tiết kỹ thuật (Portal/cấu hình)</div><div class="detail-text">${d.advanced}</div></div>`;
+    }
+    if(d.cli){
+      blocks += `<div class="detail-block"><div class="detail-label">Lệnh CLI mẫu</div><div class="code-block">${d.cli}</div></div>`;
+    }
+    if(d.examTrap){
+      blocks += `<div class="detail-block trap-block"><div class="detail-label">Tầng 3 · Bẫy hay gặp trong đề thi</div><div class="detail-text">${d.examTrap}</div></div>`;
+    }
+    const noteVal = state.notes[l.id] || '';
+    blocks += `<div class="detail-block"><div class="detail-label">Ghi chú của bạn</div>
+      <textarea class="notes-box" data-note="${l.id}" placeholder="Viết ví dụ của riêng bạn để nhớ lâu hơn...">${noteVal}</textarea>
+    </div>`;
+    return `<div class="detail-panel">
+      ${blocks}
+      <div class="detail-actions">
+        <button class="mark-btn ${isDone?'is-done':''}" data-mark="${l.id}">${isDone ? '✓ Deployed — mark pending' : 'Mark as deployed'}</button>
+      </div>
+    </div>`;
+  }
+
+  function totalLessons(){ return CURRICULUM.reduce((n,rg)=>n+rg.lessons.length,0); }
+  function doneCount(){ return Object.keys(state.completed).length; }
+
+  function lessonNameById(id){
+    for(const rg of CURRICULUM){ for(const l of rg.lessons){ if(l.id===id) return l.name; } }
+    return id;
+  }
+
+  function render(){
+    const total = totalLessons(), done = doneCount();
+    const pct = Math.round((done/total)*100);
+    document.getElementById('ring').style.setProperty('--pct', pct);
+    document.getElementById('pctText').textContent = pct+'%';
+    document.getElementById('lessonsDoneText').textContent = `${done} / ${total} lessons deployed`;
+
+    const daysLeft = Math.max(0, Math.ceil((EXAM_TARGET - new Date())/86400000));
+    document.getElementById('daysLeft').textContent = daysLeft;
+
+    document.getElementById('streakText').textContent = `🔥 ${state.streak} day streak`;
+    document.getElementById('lastSession').textContent = state.lastSessionDate ? `last session: ${state.lastSessionDate}` : 'no sessions yet';
+
+    // study minutes input (sync giá trị, không ghi đè khi đang gõ)
+    const studyInput = document.getElementById('studyMinInput');
+    if(document.activeElement !== studyInput) studyInput.value = state.studyMinutes;
+
+    // recommendation box — dựa trên tỷ lệ sai theo domain
+    renderRecommendation();
+
+    // watchlist
+    const watchKeys = Object.keys(state.watch);
+    const watchBody = document.getElementById('watchBody');
+    if(watchKeys.length === 0){
+      watchBody.innerHTML = '<div class="watch-empty">Nothing flagged yet — answer a few quiz questions to build this list.</div>';
+    } else {
+      watchBody.innerHTML = watchKeys.map(k => `<div class="watch-item">${state.watch[k].name} <span>missed ${state.watch[k].misses}×</span></div>`).join('');
+    }
+
+    // resource groups
+    const rgList = document.getElementById('rgList');
+    rgList.innerHTML = '';
+    CURRICULUM.forEach(rg => {
+      const rgDone = rg.lessons.filter(l => state.completed[l.id]).length;
+      const el = document.createElement('div');
+      el.className = 'rg' + (state.openRg === rg.id ? ' open' : '');
+      const lab = LABS[rg.id];
+      const labProg = state.labProgress[rg.id] || {};
+      const labHtml = lab ? `<div class="lab-box">
+        <div class="lab-title">🧪 ${lab.title}</div>
+        ${lab.steps.map((step, i) => `<div class="lab-step ${labProg[i]?'done':''}" data-lab-domain="${rg.id}" data-lab-step="${i}">
+          <div class="lab-check"></div><span>${step}</span>
+        </div>`).join('')}
+      </div>` : '';
+      el.innerHTML = `
+        <div class="rg-head" data-rg="${rg.id}">
+          <div class="rg-icon" style="background:${rg.color}">${rg.code.slice(3,5)}</div>
+          <div class="rg-title">
+            <div class="rg-name">${rg.name}</div>
+            <div class="rg-meta">${rg.code} · ${rg.weeks} · ${rgDone}/${rg.lessons.length} deployed</div>
+          </div>
+          <div class="rg-chevron">▶</div>
+        </div>
+        <div class="rg-body">
+          ${rg.lessons.map(l => {
+            const isWatch = !!state.watch[l.id];
+            const isDone = !!state.completed[l.id];
+            const isOpen = state.expandedLesson === l.id;
+            return `<div class="resource-wrap">
+              <div class="resource ${isDone?'done':''} ${isWatch?'watch':''} ${isOpen?'open':''}" data-lesson="${l.id}">
+                <div class="res-dot"></div>
+                <div class="res-name">${l.name}</div>
+                <div class="res-tag">${isDone?'deployed':'pending'}</div>
+                <div class="res-expand">▾</div>
+              </div>
+              ${isOpen ? renderDetailPanel(l, isDone) : ''}
+            </div>`;
+          }).join('')}
+          ${labHtml}
+        </div>
+      `;
+      rgList.appendChild(el);
+    });
+
+    rgList.querySelectorAll('.rg-head').forEach(h => {
+      h.addEventListener('click', () => {
+        const id = h.dataset.rg;
+        state.openRg = (state.openRg === id) ? null : id;
+        render(); save();
+      });
+    });
+    rgList.querySelectorAll('.resource').forEach(r => {
+      r.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = r.dataset.lesson;
+        state.expandedLesson = (state.expandedLesson === id) ? null : id;
+        render(); save();
+      });
+    });
+    rgList.querySelectorAll('.mark-btn').forEach(b => {
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = b.dataset.mark;
+        if(state.completed[id]) delete state.completed[id]; else state.completed[id] = true;
+        render(); save();
+      });
+    });
+    rgList.querySelectorAll('.notes-box').forEach(t => {
+      t.addEventListener('click', (e) => e.stopPropagation());
+      t.addEventListener('change', () => {
+        state.notes[t.dataset.note] = t.value;
+        save(); // không render() lại để không mất focus/con trỏ đang gõ
+      });
+    });
+    rgList.querySelectorAll('.lab-step').forEach(ls => {
+      ls.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const domainId = ls.dataset.labDomain, stepIdx = ls.dataset.labStep;
+        if(!state.labProgress[domainId]) state.labProgress[domainId] = {};
+        state.labProgress[domainId][stepIdx] = !state.labProgress[domainId][stepIdx];
+        render(); save();
+      });
+    });
+  }
+
+  // ---- Gợi ý học tiếp theo, dựa trên tỷ lệ sai theo domain ----
+  function renderRecommendation(){
+    const box = document.getElementById('recoBox');
+    const domainMiss = {}; // domainId -> {miss, total}
+    Object.keys(state.watch).forEach(lessonId => {
+      const d = domainOfLesson(lessonId);
+      if(!d) return;
+      if(!domainMiss[d]) domainMiss[d] = {miss:0, count:0};
+      domainMiss[d].miss += state.watch[lessonId].misses;
+      domainMiss[d].count += 1;
+    });
+    const domains = Object.keys(domainMiss);
+    if(domains.length === 0){ box.style.display = 'none'; return; }
+    domains.sort((a,b) => domainMiss[b].miss - domainMiss[a].miss);
+    const worst = domains[0];
+    const rg = CURRICULUM.find(r => r.id === worst);
+    const weakLessons = rg.lessons.filter(l => state.watch[l.id]).map(l => l.name.split(' —')[0]).slice(0,2);
+    box.style.display = 'block';
+    box.innerHTML = `<b>Gợi ý học tiếp theo:</b> Bạn đang sai nhiều nhất ở domain <b>${rg.name}</b> (${domainMiss[worst].miss} lượt sai). Nên ôn lại "${weakLessons.join('", "')}" trước khi học bài mới.`;
+  }
+
+  document.getElementById('studyMinInput').addEventListener('change', (e) => {
+    const v = parseInt(e.target.value) || 30;
+    state.studyMinutes = Math.max(10, Math.min(180, v));
+    save();
+  });
+
+  // ---- Reference Library (bảng so sánh + giới hạn dịch vụ) — nội dung tĩnh, render 1 lần ----
+  function renderReferenceLibrary(){
+    const body = document.getElementById('refLibraryBody');
+    let html = '';
+    COMPARISON_TABLES.forEach(t => {
+      html += `<div class="ref-table-title">${t.title}</div>
+        <table class="ref-table"><thead><tr>${t.columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${t.rows.map(row => `<tr>${row.map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    });
+    html += `<div class="ref-table-title">Giới hạn dịch vụ hay bị hỏi trong đề thi</div><div class="limits-list">
+      ${SERVICE_LIMITS.map(([k,v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('')}
+    </div>`;
+    body.innerHTML = html;
+  }
+  renderReferenceLibrary();
+  document.getElementById('refLibraryHead').addEventListener('click', () => {
+    const body = document.getElementById('refLibraryBody');
+    const isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : 'block';
+    document.getElementById('refLibraryRg').classList.toggle('open', !isOpen);
+  });
+
+  function save(){ store.set(state); }
+
+  // ---- Quiz engine (hỗ trợ cả quiz hàng ngày lẫn Mock Exam) ----
+  let quizQueue = [], quizIndex = 0, quizScore = 0;
+  let mockMode = false, mockTimer = null, mockSecondsLeft = 0, mockDomainStats = {};
+
+  // Spaced repetition thật (rút gọn từ SM-2): trả lời đúng → giãn khoảng lặp lại xa hơn;
+  // trả lời sai → kéo về gần (due lại ngay hôm sau).
+  function srsUpdate(lessonId, correct){
+    const rec = state.srs[lessonId] || { interval:0, ease:2.3 };
+    const today = new Date();
+    if(correct){
+      rec.interval = rec.interval === 0 ? 1 : Math.round(rec.interval * rec.ease);
+      rec.ease = Math.min(3.0, rec.ease + 0.1);
+    } else {
+      rec.interval = 0; // due lại ngay
+      rec.ease = Math.max(1.3, rec.ease - 0.3);
+    }
+    const due = new Date(today); due.setDate(due.getDate() + Math.max(rec.interval,1));
+    rec.dueDate = due.toISOString().slice(0,10);
+    state.srs[lessonId] = rec;
+  }
+
+  function pickTodaysQuiz(){
+    const todayStr = new Date().toISOString().slice(0,10);
+    const quota = Math.max(3, Math.min(12, Math.round(state.studyMinutes / 6)));
+
+    const dueLessonIds = Object.keys(state.srs).filter(id => state.srs[id].dueDate && state.srs[id].dueDate <= todayStr);
+    const incompleteLessonIds = [];
+    CURRICULUM.forEach(rg => rg.lessons.forEach(l => { if(!state.completed[l.id]) incompleteLessonIds.push(l.id); }));
+
+    const duePool = QUESTIONS.filter(q => dueLessonIds.includes(q.lesson));
+    const newPool = QUESTIONS.filter(q => incompleteLessonIds.includes(q.lesson) && !dueLessonIds.includes(q.lesson));
+
+    const chosen = [];
+    duePool.slice(0, Math.ceil(quota*0.5)).forEach(q => chosen.push(q));
+    newPool.slice(0, quota - chosen.length).forEach(q => { if(!chosen.includes(q)) chosen.push(q); });
+    if(chosen.length < quota){
+      QUESTIONS.forEach(q => { if(chosen.length < quota && !chosen.includes(q)) chosen.push(q); });
+    }
+    return chosen;
+  }
+
+  function shuffle(arr){ return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
+
+  // Trọng số theo đúng tỷ lệ % domain của đề thi thật AZ-104
+  const MOCK_WEIGHTS = { 'identity-gov':0.175, 'storage':0.175, 'compute':0.225, 'networking':0.225, 'monitor-mock':0.2 };
+  const MOCK_TOTAL = 20, MOCK_MINUTES = 25;
+
+  function buildMockQueue(){
+    const queue = [];
+    CURRICULUM.forEach(rg => {
+      const desired = Math.round(MOCK_WEIGHTS[rg.id] * MOCK_TOTAL);
+      const domainQuestions = shuffle(QUESTIONS.filter(q => domainOfLesson(q.lesson) === rg.id));
+      domainQuestions.slice(0, desired).forEach(q => queue.push({...q, domain: rg.id}));
+    });
+    // Chèn case-study clusters (mỗi câu trong cluster tính vào domain tương ứng)
+    CASE_STUDIES.forEach(cs => {
+      cs.questions.forEach(q => queue.push({...q, domain: cs.domain, scenario: cs.scenario}));
+    });
+    return shuffle(queue).slice(0, MOCK_TOTAL + CASE_STUDIES.reduce((n,cs)=>n+cs.questions.length,0));
+  }
+
+  function openMockExam(){
+    mockMode = true;
+    quizQueue = buildMockQueue();
+    quizIndex = 0; quizScore = 0;
+    mockDomainStats = {};
+    CURRICULUM.forEach(rg => mockDomainStats[rg.id] = {correct:0, total:0});
+    mockSecondsLeft = MOCK_MINUTES * 60;
+    document.getElementById('overlay').classList.add('show');
+    startMockTimer();
+    renderQuizStep();
+  }
+
+  function startMockTimer(){
+    let el = document.getElementById('mockTimerEl');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'mockTimerEl';
+      el.className = 'mock-timer';
+      document.body.appendChild(el);
+    }
+    updateMockTimerText();
+    if(mockTimer) clearInterval(mockTimer);
+    mockTimer = setInterval(() => {
+      mockSecondsLeft--;
+      updateMockTimerText();
+      if(mockSecondsLeft <= 0){
+        clearInterval(mockTimer);
+        quizIndex = quizQueue.length; // hết giờ → nộp bài ngay
+        renderQuizStep();
+      }
+    }, 1000);
+  }
+  function updateMockTimerText(){
+    const el = document.getElementById('mockTimerEl');
+    if(!el) return;
+    const m = Math.floor(mockSecondsLeft/60), s = mockSecondsLeft%60;
+    el.textContent = `⏱ ${m}:${s.toString().padStart(2,'0')}`;
+  }
+  function stopMockTimer(){
+    if(mockTimer) clearInterval(mockTimer);
+    const el = document.getElementById('mockTimerEl');
+    if(el) el.remove();
+  }
+
+  function openQuiz(){
+    mockMode = false;
+    quizQueue = pickTodaysQuiz();
+    quizIndex = 0; quizScore = 0;
+    document.getElementById('overlay').classList.add('show');
+    renderQuizStep();
+  }
+  function closeQuiz(){
+    document.getElementById('overlay').classList.remove('show');
+    if(mockMode) stopMockTimer();
+  }
+
+  function renderQuizStep(){
+    const card = document.getElementById('quizCard');
+    if(quizIndex >= quizQueue.length){
+      if(mockMode){
+        stopMockTimer();
+        const estimated = Math.round((quizScore/quizQueue.length)*1000);
+        const domainRows = CURRICULUM.map(rg => {
+          const st = mockDomainStats[rg.id];
+          if(!st || st.total === 0) return '';
+          const pct = Math.round((st.correct/st.total)*100);
+          return `<div class="domain-score-row"><span>${rg.name}</span><div class="domain-score-bar"><div class="domain-score-fill" style="width:${pct}%"></div></div><span>${st.correct}/${st.total}</span></div>`;
+        }).join('');
+        card.innerHTML = `
+          <button class="quiz-close" id="qClose">✕</button>
+          <div class="quiz-done">
+            <div class="quiz-progress">Mock Exam hoàn thành</div>
+            <div class="score">${quizScore}/${quizQueue.length}</div>
+            <div style="color:var(--muted); font-size:12.5px; margin-bottom:14px;">Điểm ước tính: <b style="color:var(--teal)">${estimated}/1000</b> (ước tính thô, KHÔNG phải thang điểm chính thức của Microsoft)</div>
+            <div style="text-align:left;">${domainRows}</div>
+          </div>`;
+      } else {
+        card.innerHTML = `
+          <button class="quiz-close" id="qClose">✕</button>
+          <div class="quiz-done">
+            <div class="quiz-progress">Session complete</div>
+            <div class="score">${quizScore}/${quizQueue.length}</div>
+            <div style="color:var(--muted); font-size:13px;">Progress saved. Come back tomorrow to keep the streak going.</div>
+          </div>`;
+      }
+      document.getElementById('qClose').onclick = closeQuiz;
+      const today = new Date().toDateString();
+      if(state.lastSessionDate !== today){
+        const yesterday = new Date(Date.now()-86400000).toDateString();
+        state.streak = (state.lastSessionDate === yesterday) ? state.streak+1 : 1;
+        state.lastSessionDate = today;
+      }
+      save(); render();
+      return;
+    }
+    const q = quizQueue[quizIndex];
+    const scenarioHtml = q.scenario ? `<div class="scenario-box">${q.scenario}</div>` : '';
+    card.innerHTML = `
+      <button class="quiz-close" id="qClose">✕</button>
+      <div class="quiz-progress">Question ${quizIndex+1} of ${quizQueue.length}${q.lesson ? ' · '+lessonNameById(q.lesson) : ''}${q.type==='troubleshoot' ? ' · 🔧 Troubleshooting' : ''}</div>
+      ${scenarioHtml}
+      <div class="quiz-q">${q.q}</div>
+      <div id="qOpts"></div>
+      <div class="quiz-explain" id="qExplain">${q.why}</div>
+      <div class="quiz-next" id="qNextWrap" style="display:none;"><button class="btn btn-primary" id="qNext">Next →</button></div>
+    `;
+    document.getElementById('qClose').onclick = closeQuiz;
+    const optsWrap = document.getElementById('qOpts');
+    q.opts.forEach((opt, i) => {
+      const b = document.createElement('button');
+      b.className = 'quiz-opt';
+      b.textContent = opt;
+      b.onclick = () => answer(i, q);
+      optsWrap.appendChild(b);
+    });
+  }
+
+  function answer(i, q){
+    const opts = document.querySelectorAll('.quiz-opt');
+    opts.forEach((b, idx) => {
+      b.onclick = null;
+      if(idx === q.a) b.classList.add('correct');
+      if(idx === i && i !== q.a) b.classList.add('wrong');
+    });
+    document.getElementById('qExplain').classList.add('show');
+    document.getElementById('qNextWrap').style.display = 'block';
+
+    const isCorrect = i === q.a;
+    if(isCorrect) quizScore++;
+
+    if(mockMode && q.domain){
+      mockDomainStats[q.domain].total++;
+      if(isCorrect) mockDomainStats[q.domain].correct++;
+    }
+
+    if(q.lesson){
+      srsUpdate(q.lesson, isCorrect);
+      if(isCorrect){
+        if(state.watch[q.lesson] && state.watch[q.lesson].misses <= 1) delete state.watch[q.lesson];
+      } else {
+        const name = lessonNameById(q.lesson);
+        if(!state.watch[q.lesson]) state.watch[q.lesson] = { name, misses:0 };
+        state.watch[q.lesson].misses++;
+      }
+    }
+    document.getElementById('qNext').onclick = () => { quizIndex++; renderQuizStep(); };
+    save();
+  }
+
+  document.getElementById('startQuizBtn').addEventListener('click', openQuiz);
+  document.getElementById('mockExamBtn').addEventListener('click', openMockExam);
+  document.getElementById('resetBtn').addEventListener('click', async () => {
+    if(confirm('Reset all progress on this device?')){
+      state = defaultState();
+      await save();
+      render();
+    }
+  });
+
+  async function boot(){
+    const loaded = await store.get(null);
+    state = loaded || defaultState();
+    render();
+  }
+
+  initAuth();
+})();
+</script>
+</body>
+</html>
