@@ -103,6 +103,14 @@
     background:transparent; color:var(--text); padding:8px 14px; border-radius:8px; cursor:pointer;
   }
   .mark-btn.is-done{border-color:var(--teal); color:var(--teal);}
+  .conf-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .conf-btn{
+    font-family:var(--body); font-size:12px; border:1px solid var(--line); background:var(--panel-2);
+    color:var(--text); padding:7px 12px; border-radius:8px; cursor:pointer;
+  }
+  .conf-btn.active.shaky{border-color:var(--coral); background:rgba(232,96,122,0.15); color:var(--coral);}
+  .conf-btn.active.ok{border-color:var(--amber); background:rgba(240,168,87,0.15); color:var(--amber);}
+  .conf-btn.active.confident{border-color:var(--teal); background:rgba(61,220,151,0.15); color:var(--teal);}
   .code-block{
     background:#0B0E1C; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
     font-family:var(--mono); font-size:11.5px; color:var(--teal); overflow-x:auto; white-space:pre;
@@ -144,6 +152,30 @@
   .domain-score-row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
   .domain-score-bar{flex:1; height:6px; background:rgba(255,255,255,0.08); border-radius:3px; margin:0 12px; overflow:hidden;}
   .domain-score-fill{height:100%; background:var(--teal); border-radius:3px;}
+
+  /* flashcards */
+  .flash-card{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:14px;
+    padding:40px 24px; text-align:center; min-height:160px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; cursor:pointer; margin:14px 0;
+  }
+  .flash-term{font-family:var(--display); font-weight:700; font-size:20px; color:var(--amber);}
+  .flash-def{font-size:14px; color:var(--text); margin-top:14px; line-height:1.5; display:none;}
+  .flash-def.show{display:block;}
+  .flash-hint{font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:16px;}
+  .flash-nav{display:flex; justify-content:space-between; align-items:center; margin-top:6px;}
+  .flash-count{font-family:var(--mono); font-size:12px; color:var(--muted);}
+
+  /* weekly pacing tracker */
+  .week-tracker{display:flex; gap:6px; margin-bottom:22px;}
+  .week-chip{
+    flex:1; text-align:center; padding:9px 4px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel); position:relative; overflow:hidden;
+  }
+  .week-chip-fill{position:absolute; inset:0; opacity:0.28; z-index:0;}
+  .week-chip-label{position:relative; z-index:1; font-family:var(--mono); font-size:10px; color:var(--muted);}
+  .week-chip-num{position:relative; z-index:1; font-family:var(--display); font-weight:700; font-size:13px;}
+  .week-chip.current{border-color:var(--amber);}
 
   /* actions */
   .actions{display:flex; gap:12px; margin:26px 0; flex-wrap:wrap;}
@@ -224,20 +256,20 @@
 <div class="auth-screen" id="authScreen">
   <div class="auth-eyebrow">// az-104 · azure administrator</div>
   <div class="auth-title">Your Azure</div>
-  <input type="email" class="auth-input" id="authEmail" placeholder="Email của bạn">
-  <button class="auth-btn" id="authSendBtn">Gửi link đăng nhập</button>
+  <input type="email" class="auth-input" id="authEmail" placeholder="Your email">
+  <button class="auth-btn" id="authSendBtn">Send login link</button>
   <div class="auth-msg" id="authMsg"></div>
 </div>
 
 <div class="auth-screen" id="pendingScreen" style="display:none;">
   <div class="auth-eyebrow">// az-104 · azure administrator</div>
-  <div class="auth-title">Chưa kích hoạt</div>
-  <div class="auth-msg" style="margin-top:0; margin-bottom:16px;">Email này chưa được kích hoạt. Sau khi thanh toán, bạn sẽ nhận được xác nhận trong ít phút — bấm nút bên dưới để kiểm tra lại.</div>
-  <button class="auth-btn" id="recheckLicenseBtn">Tôi đã thanh toán — Kiểm tra lại</button>
-  <button class="logout-link" id="pendingLogoutBtn" style="position:static; margin-top:14px; display:block;">Đăng xuất</button>
+  <div class="auth-title">Not activated yet</div>
+  <div class="auth-msg" style="margin-top:0; margin-bottom:16px;">This email hasn't been activated yet. After payment, activation usually takes a few minutes — click below to check again.</div>
+  <button class="auth-btn" id="recheckLicenseBtn">I've paid — Check again</button>
+  <button class="logout-link" id="pendingLogoutBtn" style="position:static; margin-top:14px; display:block;">Log out</button>
 </div>
 
-<button class="logout-link" id="logoutBtn" style="display:none;">Đăng xuất</button>
+<button class="logout-link" id="logoutBtn" style="display:none;">Log out</button>
 
 <div class="app" id="appRoot">
 
@@ -266,8 +298,10 @@
     </div>
   </div>
 
+  <div class="week-tracker" id="weekTracker"></div>
+
   <div class="top-actions-row">
-    <label style="font-size:12px; color:var(--muted);">Phút học/ngày:</label>
+    <label style="font-size:12px; color:var(--muted);">Minutes/day:</label>
     <input type="number" class="study-min-input" id="studyMinInput" min="10" max="180" step="5">
   </div>
 
@@ -285,7 +319,7 @@
       <div class="rg-icon" style="background:#F0A857">RF</div>
       <div class="rg-title">
         <div class="rg-name">Reference Library</div>
-        <div class="rg-meta">Bảng so sánh dịch vụ dễ nhầm · Giới hạn dịch vụ (service limits)</div>
+        <div class="rg-meta">Commonly-confused service comparisons · Service limits</div>
       </div>
       <div class="rg-chevron">▶</div>
     </div>
@@ -294,7 +328,8 @@
 
   <div class="actions">
     <button class="btn btn-primary" id="startQuizBtn">▶ Start today's session</button>
-    <button class="btn btn-ghost" id="mockExamBtn">🕐 Full Mock Exam (tính giờ)</button>
+    <button class="btn btn-ghost" id="mockExamBtn">🕐 Full Mock Exam (timed)</button>
+    <button class="btn btn-ghost" id="flashcardBtn">🔤 Key Terms Flashcards</button>
     <button class="btn btn-ghost" id="resetBtn">Reset progress</button>
   </div>
 
@@ -308,7 +343,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 (function(){
-  // ====== CẤU HÌNH SUPABASE — điền 2 giá trị này từ Project Settings > API ======
+  // ====== SUPABASE CONFIG — fill in these 2 values from Project Settings > API ======
   const SUPABASE_URL = 'YOUR_SUPABASE_URL';
   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   // ==============================================================================
@@ -326,8 +361,8 @@
             simple:"ARM (Azure Resource Manager) is the single front door every request to Azure passes through — whether you click in the portal, run a script, or use an app. Everything you create lives inside a Resource Group, and every Resource Group lives inside a Subscription.",
             analogy:"A Subscription is like a company's bank account and billing address. A Resource Group is a labeled folder for one project's paperwork. ARM is the mailroom that processes every request before it reaches any folder.",
             terms:[["ARM","The management layer every Azure request passes through"],["Subscription","Billing and access boundary that contains Resource Groups"],["Resource Group","A folder that groups related resources so you can manage or delete them together"]],
-            advanced:"Trong Portal: Home → Resource groups → Create — bạn chọn Subscription, đặt tên RG, chọn Region. Một Resource Group có 1 Region cho metadata (nơi lưu thông tin RG), nhưng tài nguyên bên trong vẫn có thể ở region khác nhau. Xoá một Resource Group sẽ xoá TẤT CẢ tài nguyên bên trong nó — không có 'thùng rác' để khôi phục sau khi xác nhận. Một tài nguyên chỉ có thể thuộc đúng 1 Resource Group tại một thời điểm, nhưng có thể move sang RG khác (Move resource) mà không cần xoá tạo lại.",
-            examTrap:"Dễ nhầm: xoá Resource Group không hỏi bạn có chắc muốn giữ lại tài nguyên nào không — đề thi hay hỏi 'điều gì xảy ra khi xoá RG' và đáp án luôn là 'toàn bộ resource bên trong bị xoá theo', không có ngoại lệ.",
+            advanced:"In the Portal: Home → Resource groups → Create — you pick a Subscription, name the RG, and choose a Region. A Resource Group has one Region for its own metadata (where the RG's information is stored), but the resources inside it can still live in different regions. Deleting a Resource Group deletes EVERY resource inside it — there's no 'recycle bin' to recover from after you confirm. A resource can only belong to one Resource Group at a time, but you can move it to a different RG (Move resource) without deleting and recreating it.",
+            examTrap:"Easy to miss: deleting a Resource Group doesn't ask which resources inside it you'd like to keep — exam questions often ask 'what happens when you delete an RG,' and the answer is always 'everything inside it is deleted too,' no exceptions.",
             cli:"az group create --name MyRG --location southeastasia"
           }},
         {id:'l2', name:'Microsoft Entra ID Basics — Users, Groups & Devices', done:true,
@@ -335,17 +370,17 @@
             simple:"Microsoft Entra ID is Azure's identity system — it's where every user account, group, and registered device lives for your organization (your 'tenant'). Anything that needs to sign in or be granted access starts here.",
             analogy:"Entra ID is the company directory and ID badge office. Before anyone can get into any office (resource), they need a badge issued here first.",
             terms:[["Tenant","Your organization's dedicated instance of Entra ID"],["Group","A collection of users you can assign access to all at once"],["Device","A registered machine that can be tracked/managed by Entra ID"]],
-            advanced:"Có 2 loại Group: Security Group (dùng để gán quyền/access) và Microsoft 365 Group (dùng để chia sẻ tài nguyên cộng tác như email, calendar). Membership có thể là Assigned (thủ công) hoặc Dynamic (tự động theo rule, ví dụ department='Sales'). Guest user là tài khoản từ tổ chức khác được mời vào tenant của bạn (B2B Collaboration) — họ dùng chính tài khoản gốc của họ để đăng nhập.",
-            examTrap:"Dễ nhầm Tenant với Subscription: Tenant là ranh giới IDENTITY (ai được sign in), Subscription là ranh giới BILLING/ACCESS đến resource. Một Tenant có thể chứa nhiều Subscription, nhưng một Subscription chỉ thuộc đúng 1 Tenant.",
-            cli:"az ad user create --display-name \"Nguyen Van A\" --user-principal-name a@yourtenant.onmicrosoft.com --password \"...\""
+            advanced:"There are two kinds of Groups: Security Group (used to assign access/permissions) and Microsoft 365 Group (used for shared collaboration resources like email and calendar). Membership can be Assigned (manual) or Dynamic (automatic, based on a rule like department='Sales'). A Guest user is an account from another organization invited into your tenant (B2B Collaboration) — they sign in with their own home account.",
+            examTrap:"Easy to confuse Tenant with Subscription: Tenant is the IDENTITY boundary (who can sign in), Subscription is the BILLING/ACCESS boundary to resources. One Tenant can contain many Subscriptions, but one Subscription belongs to exactly one Tenant.",
+            cli:"az ad user create --display-name \"Jane Doe\" --user-principal-name jane@yourtenant.onmicrosoft.com --password \"...\""
           }},
         {id:'l3', name:'RBAC — Roles, Scopes & Assignments',
           detail:{
             simple:"RBAC decides what someone can actually DO once they've signed in. It's three pieces: WHO (the identity), WHAT (a role like Reader, Contributor, or Owner), and WHERE (the scope — one resource, one Resource Group, a Subscription, or higher).",
             analogy:"It's a hotel keycard: it identifies who you are, what areas you're allowed into, and how far that access reaches — just your floor, or the whole building.",
             terms:[["Role","A named set of permissions (e.g. Contributor)"],["Role Assignment","Linking a role to a specific identity at a specific scope"],["Scope","How wide the access reaches — resource, group, subscription, or management group"]],
-            advanced:"3 role built-in quan trọng nhất: Owner (full access + có thể gán quyền cho người khác), Contributor (full access NHƯNG không được gán quyền), Reader (chỉ xem, không sửa). RBAC có tính KẾ THỪA (inherit) từ scope cao xuống thấp — gán Contributor ở Subscription thì tự động áp dụng cho mọi RG/resource bên trong, trừ khi có deny assignment chặn lại. Có thể tạo Custom Role nếu 3 role built-in không đủ chi tiết.",
-            examTrap:"Bẫy hay gặp: 'User vừa được gán Reader ở Subscription và Contributor ở 1 Resource Group cụ thể bên trong — họ có quyền gì ở RG đó?' → Trả lời: Contributor (quyền rộng hơn ở scope hẹp hơn vẫn có hiệu lực, các role không loại trừ nhau, chúng CỘNG DỒN).",
+            advanced:"The 3 most important built-in roles: Owner (full access + can grant access to others), Contributor (full access but CANNOT grant access), Reader (view only, no changes). RBAC is INHERITED from a higher scope down to lower ones — assigning Contributor at the Subscription level automatically applies to every RG/resource inside it, unless a deny assignment blocks it. You can create a Custom Role if the 3 built-in roles aren't granular enough.",
+            examTrap:"Common trap: 'A user is assigned Reader at the Subscription and Contributor at one specific Resource Group inside it — what access do they have at that RG?' → Answer: Contributor (a wider role at a narrower scope still applies — roles don't cancel each other out, they stack).",
             cli:"az role assignment create --assignee user@domain.com --role \"Contributor\" --scope /subscriptions/{sub-id}/resourceGroups/MyRG"
           }},
         {id:'l4', name:'Azure Policy & Management Groups',
@@ -353,8 +388,8 @@
             simple:"Where RBAC controls who can act, Azure Policy controls what's allowed to exist or how it must be configured — even for people who technically have permission. Management Groups let you apply the same policies across many subscriptions at once.",
             analogy:"If RBAC is the keycard system, Policy is the building code inspector — it doesn't care who you are, it just enforces the rules automatically, like 'no storage account outside this region.'",
             terms:[["Policy","A rule Azure enforces or audits automatically"],["Initiative","A bundle of related policies applied together"],["Management Group","A container above Subscriptions for applying rules broadly"]],
-            advanced:"Policy effect quan trọng cần thuộc: Deny (chặn hẳn, không tạo được), Audit (vẫn tạo được nhưng ghi log không tuân thủ), Append (tự thêm field/tag còn thiếu), DeployIfNotExists (tự động triển khai thứ còn thiếu, ví dụ tự bật Diagnostic Settings). Management Group hierarchy tối đa 6 cấp, và một Management Group gốc mặc định tên là 'Tenant Root Group'.",
-            examTrap:"Dễ nhầm Policy Deny với RBAC Deny: Policy Deny chặn theo CẤU HÌNH của resource (ví dụ sai region) bất kể ai tạo; RBAC chặn theo NGƯỜI tạo. Nếu đề hỏi 'VM tạo được nhưng ở sai region dù user có quyền Owner' → đó là Policy, không phải RBAC.",
+            advanced:"Key Policy effects to know: Deny (blocks creation outright), Audit (still creates the resource but logs non-compliance), Append (automatically adds a missing field/tag), DeployIfNotExists (automatically deploys something missing, e.g. auto-enabling Diagnostic Settings). Management Group hierarchy supports up to 6 levels, and the default root Management Group is called 'Tenant Root Group.'",
+            examTrap:"Easy to confuse Policy Deny with RBAC Deny: Policy Deny blocks based on a resource's CONFIGURATION (e.g. wrong region) regardless of who creates it; RBAC blocks based on WHO is creating it. If a question describes 'a VM that can be created but ends up in the wrong region even though the user has Owner' → that's Policy, not RBAC.",
             cli:"az policy assignment create --name enforce-region --policy \"<policy-definition-id>\" --scope /subscriptions/{sub-id}"
           }},
         {id:'l5', name:'Subscriptions, Cost Management & Tags',
@@ -362,8 +397,8 @@
             simple:"Beyond being an access boundary, a Subscription is also the unit Azure bills against. Cost Management shows spend per subscription or resource group, and Tags are labels (like CostCenter: Marketing) attached to resources so cost and ownership can be tracked and reported.",
             analogy:"Tags are sticky notes on invoices — they don't change what something does, but they let finance sort the pile by department at the end of the month.",
             terms:[["Tag","A key/value label attached to a resource"],["Budget","A spending threshold that can trigger an alert"]],
-            advanced:"Mỗi resource tối đa 50 tag. Tag có thể được gán Policy để BẮT BUỘC (ví dụ mọi resource phải có tag 'CostCenter' mới được tạo — dùng effect Deny hoặc tự động Append). Budget trong Cost Management có thể trigger Action Group khi vượt ngưỡng % (ví dụ 80%, 100%) — gửi email hoặc gọi webhook tự động.",
-            examTrap:"Dễ nhầm: Tag không tự động kế thừa từ Resource Group xuống resource bên trong (trừ khi bạn dùng Policy để tự động Append) — gán tag ở RG không có nghĩa các resource bên trong tự có tag đó.",
+            advanced:"Each resource can have up to 50 tags. Tags can be enforced via Policy (e.g. every resource must have a 'CostCenter' tag before it can be created — using a Deny effect or an automatic Append). A Budget in Cost Management can trigger an Action Group when spending crosses a threshold percentage (e.g. 80%, 100%) — automatically sending an email or calling a webhook.",
+            examTrap:"Easy to miss: tags do NOT automatically inherit from a Resource Group down to the resources inside it (unless you use Policy to auto-Append them) — tagging an RG doesn't mean the resources inside it automatically have that tag too.",
             cli:"az resource tag --tags CostCenter=Marketing --ids /subscriptions/{sub-id}/resourceGroups/MyRG/providers/.../MyResource"
           }},
       ]},
@@ -374,8 +409,8 @@
             simple:"A Storage Account is the container for all your Azure storage services (Blobs, Files, Queues, Tables). Inside it, Access Tiers — Hot, Cool, Cold, Archive — trade off cost against retrieval speed for data you access often versus rarely.",
             analogy:"Tiers are a filing system: Hot is the folder on your desk (fast, pricier per GB); Archive is the storage unit across town (cheap to keep, slow and costly to retrieve).",
             terms:[["Storage Account","The container for Blob/File/Queue/Table storage"],["Access Tier","Hot/Cool/Cold/Archive — cost vs. speed trade-off"],["Redundancy (LRS/GRS)","How many copies of your data are kept, and where"]],
-            advanced:"Tên Storage Account phải là duy nhất trên TOÀN BỘ Azure (không chỉ trong subscription của bạn), chỉ chữ thường + số, 3-24 ký tự. Access Tier có thể đặt ở mức Account (mặc định cho mọi blob) hoặc override ở từng blob riêng lẻ. Chuyển tier từ Cool/Archive về Hot sớm hơn thời gian tối thiểu cam kết sẽ bị tính phí early-deletion.",
-            examTrap:"Dễ nhầm Access Tier với Redundancy: Tier (Hot/Cool/Archive) là về TẦN SUẤT truy cập; Redundancy (LRS/ZRS/GRS/GZRS) là về SỐ BẢN SAO và VỊ TRÍ lưu — đề thi hay trộn 2 khái niệm này vào chung 1 câu hỏi.",
+            advanced:"A Storage Account name must be globally unique across ALL of Azure (not just within your subscription), lowercase letters and numbers only, 3–24 characters. The Access Tier can be set at the Account level (default for every blob) or overridden per individual blob. Moving a blob out of Cool/Archive before the minimum committed retention period triggers an early-deletion fee.",
+            examTrap:"Easy to confuse Access Tier with Redundancy: Tier (Hot/Cool/Archive) is about how OFTEN data is accessed; Redundancy (LRS/ZRS/GRS/GZRS) is about how many COPIES are kept and WHERE — exam questions often blend both concepts into one question.",
             cli:"az storage account create --name mystorageacct --resource-group MyRG --sku Standard_LRS --access-tier Cool"
           }},
         {id:'l7', name:'Blob Storage & Lifecycle Management',
@@ -383,8 +418,8 @@
             simple:"Blob storage holds unstructured data — documents, images, backups, logs — organized into containers. Lifecycle Management rules automatically move or delete blobs based on age, so old data slides to cheaper tiers or gets deleted without manual work.",
             analogy:"It's an auto-archiving filing cabinet: after 30 days a document moves to the basement, after a year it gets shredded — you set the rule once.",
             terms:[["Blob","A single file stored in Blob storage"],["Container","A folder-like grouping of blobs"],["Lifecycle rule","An automatic policy that moves/deletes blobs by age"]],
-            advanced:"3 loại Blob: Block Blob (file thường — ảnh, video, doc), Append Blob (chỉ ghi thêm vào cuối — dùng cho log), Page Blob (dùng làm VHD cho VM disk). Lifecycle rule dựa trên điều kiện 'Last modified > N days' — không dựa trên 'last accessed' trừ khi bạn bật tính năng access tracking riêng.",
-            examTrap:"Bẫy: Soft delete cho blob (nếu bật) vẫn giữ bản đã xoá trong X ngày để khôi phục — nhưng Lifecycle rule xoá vĩnh viễn (permanent delete) không đi qua soft delete nếu rule được cấu hình xoá thẳng.",
+            advanced:"3 blob types: Block Blob (regular files — images, video, docs), Append Blob (write-only-at-the-end — used for logs), Page Blob (used as a VHD for VM disks). Lifecycle rules are based on 'Last modified > N days' — not on 'last accessed' unless you separately enable access-time tracking.",
+            examTrap:"Trap: Soft delete for blobs (if enabled) keeps deleted blobs recoverable for X days — but a Lifecycle rule that permanently deletes a blob does NOT go through soft delete if the rule is configured to delete outright.",
             cli:"az storage account management-policy create --account-name mystorageacct --policy @policy.json"
           }},
         {id:'l8', name:'Azure Files & File Shares',
@@ -392,8 +427,8 @@
             simple:"Azure Files gives you a network file share in the cloud that works like a regular shared drive (SMB/NFS) — machines can mount it like a normal drive letter, instead of accessing it only through an API like Blob storage.",
             analogy:"If Blob storage is a document management system, Azure Files is just a shared network drive people are already used to mapping on their computer.",
             terms:[["File Share","A mountable network folder hosted in Azure"],["SMB protocol","The file-sharing protocol Windows drives typically use"]],
-            advanced:"Azure File Sync cho phép cache File Share về một Windows Server tại chỗ (on-premises) để truy cập nhanh, trong khi bản gốc vẫn nằm trên Azure — dùng khi văn phòng có mạng chậm ra internet. Có thể mount trực tiếp từ máy Windows qua giao thức SMB 3.0 miễn là port 445 không bị chặn (nhiều ISP/doanh nghiệp chặn port này ra ngoài).",
-            examTrap:"Dễ nhầm: SMB port 445 hay bị công ty/ISP chặn ra internet — nếu đề mô tả 'nhân viên ở nhà không mount được Azure File Share dù đã đúng quyền', đáp án thường là kiểm tra/mở port 445, không phải vấn đề RBAC hay Storage key.",
+            advanced:"Azure File Sync lets you cache a File Share on a local Windows Server on-premises for fast access, while the source of truth stays in Azure — used when the office has a slow internet connection. You can mount directly from Windows over SMB 3.0 as long as port 445 isn't blocked (many ISPs/companies block this port outbound).",
+            examTrap:"Easy to confuse: SMB port 445 is commonly blocked by ISPs/companies outbound — if a question describes 'an employee working from home can't mount an Azure File Share despite having correct permissions,' the answer is usually to check/open port 445, not an RBAC or Storage key issue.",
             cli:"az storage share create --name myshare --account-name mystorageacct --quota 100"
           }},
         {id:'l9', name:'Storage Security — SAS, Keys & Networking',
@@ -401,8 +436,8 @@
             simple:"Access keys grant full control over an entire storage account — powerful, and risky if leaked. A SAS (Shared Access Signature) is a scoped, time-limited link that grants just enough access — for example, read-only for two hours — without sharing the master key.",
             analogy:"An access key is the master key to the whole building. A SAS is a visitor pass that only opens one door, for one afternoon, then stops working.",
             terms:[["Access Key","Full-control credential for a storage account"],["SAS token","A scoped, time-limited access link"],["Private endpoint","Restricts storage access to a private network only"]],
-            advanced:"Mỗi Storage Account có 2 Access Key (key1, key2) để bạn xoay vòng (rotate) mà không gây gián đoạn — đổi sang key2 trước, cập nhật app, rồi mới regenerate key1. Có 3 loại SAS: Account SAS (toàn account), Service SAS (1 container/blob cụ thể), User Delegation SAS (dùng Entra ID credential thay vì key, an toàn hơn). Private Endpoint gán một private IP trong VNet của bạn cho storage account, chặn truy cập qua internet công cộng hoàn toàn.",
-            examTrap:"Bẫy: SAS token vẫn hoạt động được ngay cả khi bạn đổi Access Key, TRỪ Account SAS/Service SAS (chúng được ký bằng access key nên sẽ mất hiệu lực khi key đổi) — còn User Delegation SAS ký bằng Entra ID token nên không bị ảnh hưởng khi đổi storage key.",
+            advanced:"Every Storage Account has 2 access keys (key1, key2) so you can rotate them without downtime — switch to key2 first, update the app, then regenerate key1. There are 3 kinds of SAS: Account SAS (whole account), Service SAS (one specific container/blob), User Delegation SAS (signed with an Entra ID credential instead of a key, safer). A Private Endpoint assigns a private IP inside your VNet to the storage account, blocking public internet access entirely.",
+            examTrap:"Trap: a SAS token still works even after you change the Access Key, EXCEPT for Account SAS/Service SAS (which are signed with the access key, so they become invalid when that key changes) — a User Delegation SAS is signed with an Entra ID token, so it isn't affected by a storage key change.",
             cli:"az storage container generate-sas --account-name mystorageacct --name mycontainer --permissions r --expiry 2026-08-01T00:00:00Z"
           }},
       ]},
@@ -413,8 +448,8 @@
             simple:"A VM's size determines its CPU, RAM, and disk performance — and its cost. Availability options (Availability Set, Availability Zone) protect against hardware or datacenter failure by spreading VMs across separate physical infrastructure.",
             analogy:"Availability Zones are like keeping backup generators in separate buildings across town rather than all in the same basement — one building's problem doesn't take out the others.",
             terms:[["VM size","The CPU/RAM/disk performance tier of a virtual machine"],["Availability Zone","A physically separate datacenter within a region"],["SLA","Azure's uptime guarantee, which improves with redundancy"]],
-            advanced:"Availability Set chia VM vào Fault Domain (nhóm phần cứng/nguồn điện vật lý khác nhau, thường 2-3 FD) và Update Domain (nhóm được patch/reboot luân phiên, thường 5 UD) — bảo vệ khỏi lỗi phần cứng và bảo trì trong CÙNG 1 datacenter. Availability Zone bảo vệ ở mức cao hơn: các datacenter VẬT LÝ KHÁC NHAU trong cùng region. SLA: single VM với Premium SSD = 99.9%; Availability Set = 99.95%; 2+ VM ở Availability Zone khác nhau = 99.99%.",
-            examTrap:"Bẫy lớn nhất: KHÔNG thể vừa dùng Availability Set vừa dùng Availability Zone cho cùng 1 VM — đây là 2 cơ chế loại trừ nhau, phải chọn 1. Đề thi hay hỏi 'công ty cần bảo vệ khỏi lỗi cả datacenter' → đáp án luôn là Availability Zone, không phải Availability Set.",
+            advanced:"An Availability Set spreads VMs across Fault Domains (groups of physically separate hardware/power, usually 2-3 FDs) and Update Domains (groups patched/rebooted in rotation, usually 5 UDs) — protecting against hardware failure and maintenance WITHIN the same datacenter. Availability Zones protect at a higher level: physically separate datacenters within the same region. SLA: a single VM on Premium SSD = 99.9%; an Availability Set = 99.95%; 2+ VMs across different Availability Zones = 99.99%.",
+            examTrap:"The biggest trap: you CANNOT use an Availability Set and Availability Zones for the same VM at the same time — these are mutually exclusive, you must pick one. If a question describes needing protection from an entire datacenter failing, the answer is always Availability Zones, not an Availability Set.",
             cli:"az vm create --resource-group MyRG --name myVM --image Ubuntu2204 --zone 1 --size Standard_D2s_v3"
           }},
         {id:'l11', name:'VM Disks & Storage',
@@ -422,8 +457,8 @@
             simple:"Every VM needs an OS disk and can have data disks attached. Disk types — Standard HDD, Standard SSD, Premium SSD, Ultra Disk — trade off cost against performance, the same way storage access tiers do.",
             analogy:"Choosing a disk type is like choosing tires for a car — cheaper tires save money, but a demanding workload needs the high-performance set.",
             terms:[["OS disk","The disk holding the VM's operating system"],["Managed disk","A disk whose storage account management Azure handles for you"]],
-            advanced:"Premium SSD yêu cầu VM series hỗ trợ Premium Storage (thường có hậu tố 's' trong tên size, ví dụ Standard_D2s_v3). Ultra Disk cho phép chỉnh IOPS/throughput độc lập với dung lượng disk (trả tiền riêng cho hiệu năng), phù hợp SQL Server tải cao. Có thể resize disk (tăng dung lượng) khi VM đang chạy, nhưng đổi TIER disk (vd Standard→Premium) yêu cầu deallocate VM trước.",
-            examTrap:"Dễ nhầm: 'Resize disk' (tăng GB) làm được khi VM đang chạy, nhưng 'đổi loại disk' (Standard HDD → Premium SSD) thì KHÔNG — phải Stop (deallocate) VM trước. Đề hay hỏi tình huống cần đổi cả hai để xem bạn có phân biệt được không.",
+            advanced:"Premium SSD requires a VM series that supports Premium Storage (usually has an 's' in the size name, e.g. Standard_D2s_v3). Ultra Disk lets you tune IOPS/throughput independently of disk size (paying separately for performance), suited to high-load SQL Server workloads. You can resize a disk (increase capacity) while the VM is running, but changing the disk TIER (e.g. Standard→Premium) requires deallocating the VM first.",
+            examTrap:"Easy to confuse: 'Resizing' a disk (increasing GB) can be done while the VM is running, but 'changing the disk type' (Standard HDD → Premium SSD) CANNOT — the VM must be stopped (deallocated) first. Exam questions often describe needing to do both, to test whether you know the difference.",
             cli:"az disk update --resource-group MyRG --name myDataDisk --sku Premium_LRS"
           }},
         {id:'l12', name:'VM Scale Sets',
@@ -431,8 +466,8 @@
             simple:"A Scale Set is a group of identical VMs that can automatically grow or shrink based on demand — autoscale — so you don't manually add servers during a traffic spike or pay for idle ones overnight.",
             analogy:"It's a restaurant automatically calling in extra staff when it gets busy on a Friday night, then sending them home once it's quiet.",
             terms:[["Scale Set","A group of identical, auto-scaled VMs"],["Autoscale rule","A condition that triggers adding or removing instances"]],
-            advanced:"Autoscale rule có 2 chiều: Scale-out (thêm instance khi CPU > ngưỡng, ví dụ >70% trong 10 phút) và Scale-in (giảm instance khi CPU < ngưỡng thấp). Cần đặt cooldown period giữa các lần scale để tránh 'flapping' (tăng giảm liên tục). Scale Set hỗ trợ tối đa 1000 instance với Uniform orchestration mode, hoặc dùng Flexible mode để trộn nhiều size VM khác nhau trong cùng 1 scale set.",
-            examTrap:"Bẫy: Autoscale dựa trên METRIC (CPU, memory, custom metric từ Azure Monitor), KHÔNG dựa trên lịch cố định trừ khi bạn cấu hình thêm 'Scale based on a schedule' riêng — đừng nhầm autoscale mặc định là theo giờ trong ngày.",
+            advanced:"Autoscale rules work in two directions: scale-out (add instances when CPU exceeds a threshold, e.g. >70% for 10 minutes) and scale-in (remove instances when CPU drops below a lower threshold). A cooldown period between scale actions is needed to prevent 'flapping' (constant scale up/down). A Scale Set supports up to 1000 instances in Uniform orchestration mode, or you can use Flexible mode to mix different VM sizes in the same scale set.",
+            examTrap:"Trap: autoscale is based on a METRIC (CPU, memory, a custom metric from Azure Monitor), NOT a fixed schedule, unless you separately configure 'Scale based on a schedule' — don't assume autoscale defaults to time-of-day.",
             cli:"az vmss create --resource-group MyRG --name myScaleSet --image Ubuntu2204 --instance-count 2 --vm-sku Standard_D2s_v3"
           }},
         {id:'l13', name:'Azure App Service',
@@ -440,29 +475,38 @@
             simple:"App Service lets you run a web app or API without managing the underlying VM at all — you deploy your code and Azure handles the server, patching, and scaling.",
             analogy:"It's the difference between renting a fully-serviced office — just move your work in — versus buying a building and hiring your own maintenance crew, which is what a VM requires.",
             terms:[["App Service Plan","The compute tier your web app runs on"],["Deployment slot","A separate environment (e.g. staging) you can swap into production"]],
-            advanced:"App Service Plan quyết định tier (Free/Shared/Basic/Standard/Premium) — nhiều Web App có thể dùng CHUNG 1 App Service Plan để tiết kiệm chi phí, miễn không vượt quá tài nguyên của plan đó. Deployment Slot (chỉ có từ Standard tier trở lên) cho phép deploy lên 'staging', test xong rồi Swap sang 'production' gần như không downtime — vì swap chỉ đổi routing, không phải deploy lại.",
-            examTrap:"Dễ nhầm: Swap giữa các slot không làm mất cấu hình riêng của từng slot nếu bạn đánh dấu setting đó là 'slot-specific' (sticky) — nếu không đánh dấu, connection string/app setting sẽ đi theo code khi swap, gây lỗi kết nối nhầm database production/staging.",
+            advanced:"The App Service Plan determines the tier (Free/Shared/Basic/Standard/Premium) — multiple Web Apps can SHARE one App Service Plan to save cost, as long as they don't exceed that plan's resources. Deployment Slots (available from Standard tier and up) let you deploy to 'staging,' test it, then Swap into 'production' with almost no downtime — because a swap just changes routing, it doesn't redeploy anything.",
+            examTrap:"Easy to confuse: swapping between slots doesn't lose a slot's own settings if you mark that setting as 'slot-specific' (sticky) — if you don't mark it, connection strings/app settings will follow the code during a swap, causing production to accidentally connect to a staging database or vice versa.",
             cli:"az webapp deployment slot create --name myapp --resource-group MyRG --slot staging"
           }},
-        {id:'l14', name:'Containers — ACI & AKS Basics',
+        {id:'l14', name:'Containers — ACI, AKS & Container Apps',
           detail:{
-            simple:"Containers package an app with everything it needs to run, so it behaves the same anywhere. Azure Container Instances (ACI) runs single containers quickly with no infrastructure to manage; AKS (Kubernetes) manages many containers together at scale.",
-            analogy:"ACI is renting a single shipping container for one job. AKS is running an entire container port — scheduling, moving, and replacing hundreds of containers automatically.",
-            terms:[["Container","A packaged app that runs consistently anywhere"],["ACI","Runs a single container with no infrastructure to manage"],["AKS","Manages many containers together (orchestration)"]],
-            advanced:"ACI tính phí theo giây, phù hợp job ngắn hạn/burst (ví dụ chạy 1 batch job rồi tắt). AKS quản lý Node Pool (nhóm VM chạy container) và có thể tự động scale cả Pod (Horizontal Pod Autoscaler) lẫn Node (Cluster Autoscaler). Azure Container Registry (ACR) thường đi kèm để lưu trữ container image riêng tư trước khi AKS/ACI kéo về chạy.",
-            examTrap:"Bẫy: Đề hay mô tả tình huống cần chạy MỘT container đơn giản, ngắn hạn, không cần quản lý lâu dài → nhiều người phản xạ chọn AKS vì quen thuộc hơn, nhưng đáp án đúng thường là ACI vì AKS 'over-engineered' cho nhu cầu đơn giản đó (tốn thời gian dựng cluster, tốn chi phí node chạy nền).",
+            simple:"Containers package an app with everything it needs to run, so it behaves the same anywhere. Azure Container Instances (ACI) runs single containers quickly with no infrastructure to manage; AKS (Kubernetes) manages many containers together at scale; Azure Container Apps sits in between — a managed, serverless option for microservices that scale without you running a cluster.",
+            analogy:"ACI is renting a single shipping container for one job. AKS is running an entire container port — scheduling, moving, and replacing hundreds of containers automatically. Container Apps is like renting a fully-staffed loading dock: more capability than a single container, but you still don't have to run the port yourself.",
+            terms:[["Container","A packaged app that runs consistently anywhere"],["ACI","Runs a single container with no infrastructure to manage"],["AKS","Manages many containers together (orchestration)"],["Container Apps","Managed, serverless container hosting for microservices, built on Kubernetes under the hood"]],
+            advanced:"ACI bills by the second, suited to short-lived/burst jobs (e.g. run one batch job then shut down). AKS manages Node Pools (groups of VMs running containers) and can autoscale both Pods (Horizontal Pod Autoscaler) and Nodes (Cluster Autoscaler). Azure Container Registry (ACR) is usually paired with these to store private container images. Azure Container Apps (expanded in the 2026 exam update) is a fully managed, serverless container platform for microservices and event-driven apps — no cluster to manage at all, more capability than ACI, less operational overhead than AKS.",
+            examTrap:"Trap: exam questions often describe needing to run ONE simple, short-lived container with no ongoing management → the instinctive answer is AKS because it's more familiar, but the correct answer is usually ACI, since AKS is 'over-engineered' for that simple need. If the scenario instead describes several microservices that need to scale independently without managing a cluster, Container Apps is often the better fit than either ACI or AKS.",
             cli:"az container create --resource-group MyRG --name mycontainer --image myregistry.azurecr.io/myapp:latest --cpu 1 --memory 1"
           }},
+        {id:'l25', name:'Infrastructure as Code — ARM Templates & Bicep',
+          detail:{
+            simple:"ARM Templates are JSON files that describe what Azure resources you want and their configuration, so you can deploy the exact same environment repeatedly instead of clicking through the Portal each time. Bicep is a simpler language that compiles down to an ARM Template — same result, much easier to write and read.",
+            analogy:"An ARM Template/Bicep file is a recipe: instead of describing every step out loud each time (click here, type this), you write the recipe once and anyone — including a script — can 'cook' the exact same result on demand.",
+            terms:[["ARM Template","A JSON file declaring the desired Azure resources and configuration"],["Bicep","A simpler language that compiles to an ARM Template"],["Idempotent deployment","Redeploying the same template gives the same end state safely, even if run multiple times"]],
+            advanced:"Deployments can run in Incremental mode (default — only adds/updates what's in the template, leaves other existing resources alone) or Complete mode (deletes any resource in the target Resource Group that isn't described in the template — dangerous if used carelessly). Bicep files are converted to ARM JSON automatically at deployment time. Templates can reference parameters and variables, making the same template reusable across dev/test/prod by just changing parameter values.",
+            examTrap:"Big trap: Complete deployment mode will DELETE existing resources in the target Resource Group that aren't declared in the template — a question describing 'resources unexpectedly disappeared after a deployment' is almost always pointing at Complete mode being used by mistake instead of Incremental.",
+            cli:"az deployment group create --resource-group MyRG --template-file main.bicep --mode Incremental"
+          }},
       ]},
-    { id:'networking', name:'Configure & Manage Networking', code:'RG-NETWORK', color:'#C99BFF', weeks:'Weeks 5–6',
+    { id:'networking', name:'Implement & Manage Virtual Networking', code:'RG-NETWORK', color:'#C99BFF', weeks:'Weeks 5–6',
       lessons:[
         {id:'l15', name:'Virtual Networks, Subnets & IP Addressing',
           detail:{
             simple:"A Virtual Network (VNet) is your own private network inside Azure. You divide it into Subnets to organize and isolate groups of resources, each with its own IP address range.",
             analogy:"A VNet is like leasing an entire office floor; subnets are the individual rooms you divide it into for different teams.",
             terms:[["VNet","Your private network inside Azure"],["Subnet","A subdivision of a VNet with its own IP range"],["CIDR","The notation used to define an IP address range"]],
-            advanced:"Azure luôn giữ lại 5 địa chỉ IP đầu tiên của MỖI subnet cho mục đích hệ thống (network address, default gateway, 2 địa chỉ DNS dự phòng, broadcast) — nghĩa là subnet /24 (256 IP) chỉ dùng được thực tế 251 IP cho resource. Subnet không thể đổi kích thước (resize) sau khi đã có resource bên trong mà không xoá resource trước. Mỗi subnet chỉ được gán TỐI ĐA 1 NSG và 1 Route Table.",
-            examTrap:"Bẫy tính toán hay gặp: đề cho subnet dạng /27 (32 địa chỉ) và hỏi 'dùng được bao nhiêu host' — nhiều người quên trừ 5 IP hệ thống của Azure (khác với chuẩn networking thông thường chỉ trừ 2), đáp án đúng là 32 - 5 = 27, không phải 30.",
+            advanced:"Azure always reserves the first 5 IP addresses in EVERY subnet for system purposes (network address, default gateway, 2 reserved DNS addresses, broadcast) — meaning a /24 subnet (256 addresses) only actually gives you 251 usable addresses for resources. A subnet cannot be resized once it has resources inside it, without removing those resources first. Each subnet can only have ONE NSG and ONE Route Table attached at most.",
+            examTrap:"Common calculation trap: a question gives a /27 subnet (32 addresses) and asks 'how many usable hosts' — many people forget Azure reserves 5 system addresses (unlike standard networking, which only reserves 2), so the correct answer is 32 − 5 = 27, not 30.",
             cli:"az network vnet create --resource-group MyRG --name myVNet --address-prefix 10.0.0.0/16 --subnet-name subnet1 --subnet-prefix 10.0.1.0/24"
           }},
         {id:'l16', name:'Network Security Groups & Application Security Groups',
@@ -470,8 +514,8 @@
             simple:"A Network Security Group (NSG) is a firewall with allow/deny rules for traffic in and out of a subnet or network card. Application Security Groups (ASGs) let you group VMs by role — like 'WebServers' — so you write one NSG rule for the group instead of per IP address.",
             analogy:"NSGs are the security guard checking IDs at each door. ASGs are like giving a whole team the same colored badge, so the guard's rule can just say 'blue badges allowed here' instead of listing every name.",
             terms:[["NSG","A firewall of allow/deny rules for network traffic"],["ASG","Groups VMs by role so NSG rules apply to the group"],["Priority","The order NSG rules are evaluated in"]],
-            advanced:"Rule NSG có Priority từ 100-4096, số CÀNG NHỎ càng được xét TRƯỚC — Azure dừng lại ngay khi gặp rule đầu tiên khớp điều kiện, không xét tiếp các rule sau. Có sẵn Default Security Rules không thể xoá (ví dụ AllowVnetInBound, DenyAllInBound priority 65500) nhưng có thể override bằng rule custom priority thấp hơn. NSG có thể gán ở 2 chỗ: Subnet level VÀ NIC level cùng lúc — traffic phải pass qua CẢ HAI mới được cho qua.",
-            examTrap:"Bẫy kinh điển: NSG ở Subnet cho phép traffic, nhưng NSG ở NIC của VM lại chặn (hoặc ngược lại) → traffic vẫn bị chặn, vì cả 2 lớp đều phải cho phép. Đề hay mô tả 'đã mở port ở NSG level X nhưng vẫn không kết nối được' để test bạn có nhớ kiểm tra CẢ HAI lớp không.",
+            advanced:"NSG rules have a Priority from 100–4096 — the LOWER the number, the EARLIER it's evaluated. Azure stops at the first matching rule. There are Default Security Rules that can't be deleted (e.g. AllowVnetInBound, DenyAllInBound at priority 65500), but they can be overridden by a custom rule with a lower priority. An NSG can be attached at BOTH the Subnet level AND the NIC level at the same time — traffic must pass through BOTH layers to be allowed.",
+            examTrap:"Classic trap: an NSG at the Subnet level allows traffic, but the NSG at the VM's NIC level blocks it (or vice versa) → traffic is still blocked, because both layers must allow it. Questions often describe 'I already opened port X at the NSG level but still can't connect' to test whether you remember to check BOTH layers.",
             cli:"az network nsg rule create --resource-group MyRG --nsg-name myNSG --name AllowHTTP --priority 100 --access Allow --protocol Tcp --destination-port-ranges 80"
           }},
         {id:'l17', name:'VNet Peering & VPN Gateway',
@@ -479,8 +523,8 @@
             simple:"VNet Peering privately connects two VNets together, even across regions, so they communicate over Microsoft's backbone rather than the public internet. A VPN Gateway connects your on-premises network to Azure over an encrypted tunnel.",
             analogy:"Peering is building a private hallway between two office floors. A VPN Gateway is a secure tunnel connecting your home office building to company HQ.",
             terms:[["VNet Peering","A private link connecting two VNets"],["VPN Gateway","An encrypted tunnel between on-premises and Azure"]],
-            advanced:"VNet Peering KHÔNG bắc cầu (non-transitive): nếu VNet A peer với B, và B peer với C, thì A KHÔNG tự động thấy được C — phải tạo peering riêng A-C nếu cần. Peering yêu cầu address space của 2 VNet không được trùng nhau (overlap). VPN Gateway có 2 loại: Policy-based (cũ, ít dùng) và Route-based (phổ biến, hỗ trợ nhiều loại kết nối hơn) — cần chọn Gateway SKU đủ lớn vì không đổi SKU được cho một số loại gateway sau khi tạo.",
-            examTrap:"Bẫy hay gặp nhất domain này: 'Non-transitive peering' — đề mô tả 3 VNet peer bắc cầu và hỏi VNet A có kết nối được VNet C không, đáp án luôn là KHÔNG trừ khi có peering trực tiếp A-C, dù A-B và B-C đều đã peer.",
+            advanced:"VNet Peering is NOT transitive: if VNet A peers with B, and B peers with C, A does NOT automatically see C — a direct A–C peering is required if needed. Peering requires the two VNets' address spaces to not overlap. VPN Gateway comes in two types: Policy-based (older, rarely used) and Route-based (common, supports more connection types) — you need to pick a large-enough Gateway SKU since some gateway types can't have their SKU changed after creation.",
+            examTrap:"The single most common trap in this domain: non-transitive peering — a question describes 3 VNets peered in a chain and asks whether VNet A can reach VNet C, and the answer is always NO unless there's a direct A–C peering, even though A–B and B–C are both peered.",
             cli:"az network vnet peering create --name AtoB --resource-group MyRG --vnet-name VNetA --remote-vnet VNetB --allow-vnet-access"
           }},
         {id:'l18', name:'Load Balancer & Application Gateway',
@@ -488,8 +532,8 @@
             simple:"A Load Balancer distributes network traffic across multiple VMs so no single one gets overwhelmed, working at the network level. Application Gateway does similar distribution but understands web traffic — it can route based on URL path and handle SSL.",
             analogy:"A Load Balancer is a traffic cop directing cars evenly into parking lot entrances. Application Gateway is a smart receptionist who reads what each visitor needs and sends them to the right department.",
             terms:[["Load Balancer","Distributes traffic across VMs at the network level"],["Application Gateway","Distributes web traffic with URL-aware routing"],["Backend pool","The set of servers traffic is distributed to"]],
-            advanced:"Load Balancer có 2 SKU: Basic (miễn phí, không SLA, không hỗ trợ Availability Zone) và Standard (có SLA 99.99%, hỗ trợ Availability Zone, bắt buộc NSG tường minh — mặc định DENY nếu không có NSG, khác với Basic mặc định ALLOW). Application Gateway hoạt động ở Layer 7, có tính năng WAF (Web Application Firewall) tuỳ chọn để chặn tấn công như SQL injection.",
-            examTrap:"Bẫy hay thi: Basic Load Balancer mặc định CHO PHÉP traffic vào nếu không có NSG; Standard Load Balancer mặc định CHẶN traffic vào nếu không có NSG tường minh cho phép — đổi từ Basic sang Standard mà quên thêm NSG sẽ làm mất kết nối đột ngột.",
+            advanced:"Load Balancer has 2 SKUs: Basic (free, no SLA, no Availability Zone support) and Standard (99.99% SLA, supports Availability Zones, requires an explicit NSG — it defaults to DENY if there's no NSG, unlike Basic which defaults to ALLOW). Microsoft has been retiring the Basic Load Balancer SKU, so treat Standard as the default choice going forward and expect exam questions to frame Basic mainly as the legacy/wrong answer. Application Gateway operates at Layer 7 and has an optional WAF (Web Application Firewall) feature to block attacks like SQL injection.",
+            examTrap:"Common exam trap: Basic Load Balancer defaults to ALLOWING inbound traffic if there's no NSG; Standard Load Balancer defaults to BLOCKING inbound traffic unless an NSG explicitly allows it — moving from Basic to Standard without adding an NSG causes connectivity to suddenly break.",
             cli:"az network lb create --resource-group MyRG --name myLB --sku Standard --frontend-ip-name myFrontEnd --backend-pool-name myBackEndPool"
           }},
         {id:'l19', name:'Azure DNS & Name Resolution',
@@ -497,9 +541,27 @@
             simple:"Azure DNS translates human-friendly names, like myapp.com, into IP addresses so resources can find each other, both on the public internet and privately inside your VNets.",
             analogy:"DNS is the phone book — you look up a name and get the number, the IP address, to actually dial.",
             terms:[["DNS zone","A container for DNS records for a domain"],["Private DNS zone","Name resolution that only works inside your VNet"]],
-            advanced:"Private DNS Zone phải được LINK tường minh vào từng VNet cần dùng nó (Virtual Network Link) — không tự động áp dụng cho mọi VNet trong subscription. Có thể bật 'Auto registration' để VM tự động có DNS record khi được tạo trong VNet đã link. Azure-provided DNS mặc định (168.63.129.16) chỉ resolve được tên nội bộ Azure, không dùng cho domain công ty riêng — cần Private DNS Zone hoặc custom DNS server cho việc đó.",
-            examTrap:"Dễ nhầm: Tạo xong Private DNS Zone nhưng quên bước Link VNet — record vẫn tồn tại nhưng VM trong VNet không resolve được, vì Zone chỉ có 'thẩm quyền' (authoritative) trong các VNet đã được link tường minh.",
+            advanced:"A Private DNS Zone must be explicitly LINKED to each VNet that needs to use it (Virtual Network Link) — it doesn't automatically apply to every VNet in the subscription. You can enable 'Auto registration' so VMs automatically get a DNS record when created in a linked VNet. Azure's default provided DNS (168.63.129.16) only resolves internal Azure names — it can't resolve a company's own custom domain, which is what a Private DNS Zone or a custom DNS server is for.",
+            examTrap:"Easy to miss: creating a Private DNS Zone but forgetting to Link it to a VNet — the record still exists but VMs in that VNet can't resolve it, because a Zone only has authority in VNets it's been explicitly linked to.",
             cli:"az network private-dns link vnet create --resource-group MyRG --zone-name internal.contoso.com --name MyLink --virtual-network MyVNet --registration-enabled true"
+          }},
+        {id:'l26', name:'Azure Bastion — Secure VM Access',
+          detail:{
+            simple:"Azure Bastion lets you RDP/SSH into a VM directly through the Azure Portal over HTTPS, without giving that VM a public IP address at all. It's the standard, secure way to reach a VM that should never be directly exposed to the internet.",
+            analogy:"Instead of installing a front door lock that opens straight onto the street (a public IP with RDP/SSH open), Bastion is like a manned lobby entrance — you go through a secure checkpoint, and the VM itself never has a door facing outside.",
+            terms:[["Bastion host","A managed jump box service Azure runs for you"],["Public IP","An internet-reachable address — Bastion removes the need for the VM to have one"]],
+            advanced:"Bastion is deployed into its own dedicated subnet named exactly 'AzureBastionSubnet' (minimum /26) inside the VNet. Once deployed, RDP/SSH sessions run inside the browser through the Portal — no client software or open inbound NSG rule to the VM's RDP/SSH port is needed from the internet. This directly replaces the older, less secure pattern of opening port 3389/22 to the internet on a VM's public IP.",
+            examTrap:"Trap: a question describing 'administrators need to RDP into VMs without exposing any VM to the public internet' is a direct pointer to Azure Bastion — don't reach for a VPN Gateway or a public IP + NSG rule answer when Bastion is an option in the choices.",
+            cli:"az network bastion create --name myBastion --public-ip-address myBastionIP --resource-group MyRG --vnet-name MyVNet"
+          }},
+        {id:'l27', name:'Network Watcher — Diagnostics & Troubleshooting',
+          detail:{
+            simple:"Network Watcher is Azure's toolbox for diagnosing why network traffic isn't working the way you expect — instead of guessing which NSG rule or route is the problem, its tools show you exactly what's happening to a packet.",
+            analogy:"It's like a package tracking system for network traffic — instead of just knowing a delivery didn't arrive, you can see exactly which checkpoint it got stopped at and why.",
+            terms:[["IP Flow Verify","Checks whether a specific packet would be allowed or denied, and which rule decided that"],["NSG Flow Logs","A log of all traffic that hits an NSG, allowed or denied"],["Connection Troubleshoot","Tests actual connectivity between a source and destination end-to-end"]],
+            advanced:"Key tools: IP Flow Verify tells you instantly which NSG rule allows or denies a specific packet — the fastest way to debug 'why is this blocked' instead of manually reading every rule. NSG Flow Logs record ALL traffic hitting an NSG over time, useful for security auditing and historical troubleshooting. Connection Troubleshoot actually tests a live connection between two points and reports where it fails (NSG, routing, DNS, etc.).",
+            examTrap:"Trap: don't confuse IP Flow Verify (instantly checks a single potential packet against current rules) with NSG Flow Logs (records real traffic history over time) — a question asking for the FASTEST way to check if a specific rule would block traffic wants IP Flow Verify, not Flow Logs.",
+            cli:"az network watcher test-ip-flow --resource-group MyRG --vm myVM --direction Inbound --protocol TCP --local 10.0.1.4:3389 --remote 203.0.113.5:52000"
           }},
       ]},
     { id:'monitor-mock', name:'Monitor & Maintain Resources', code:'RG-MONITOR', color:'#E8607A', weeks:'Weeks 7–8',
@@ -509,8 +571,8 @@
             simple:"Azure Monitor collects metrics and logs from your resources. Log Analytics lets you query that data — like 'show me all failed logins today.' Alerts automatically notify you, or trigger an action, when a condition is met, instead of you checking dashboards manually.",
             analogy:"It's a building's security camera system with a searchable recording archive, plus an automatic alarm that texts you the moment something looks wrong.",
             terms:[["Metric","A numeric value tracked over time, like CPU %"],["Log Analytics Workspace","Where logs are stored and queried"],["Alert rule","A condition that triggers a notification or action"]],
-            advanced:"Metric là dữ liệu số theo thời gian, lưu trong Metric database riêng, truy vấn nhanh, giữ giới hạn thời gian ngắn hơn Log. Log dùng ngôn ngữ truy vấn KQL (Kusto Query Language) trong Log Analytics Workspace, linh hoạt hơn nhưng chậm hơn Metric. Alert rule gồm 3 phần: Scope (resource nào), Condition (điều kiện gì), Action Group (làm gì khi trigger — email, SMS, webhook, Azure Function).",
-            examTrap:"Dễ nhầm: Metric Alert phản ứng gần như tức thời (giây/phút), còn Log Alert (dựa trên KQL query) có độ trễ lớn hơn vì phải chạy query theo chu kỳ (ví dụ mỗi 5-15 phút) — đề hay hỏi 'cần cảnh báo NGAY LẬP TỨC khi CPU vượt ngưỡng' → đáp án là Metric Alert, không phải Log Alert.",
+            advanced:"A Metric is numeric time-series data, stored in a separate Metric database, fast to query, with a shorter retention window than Logs. Logs use KQL (Kusto Query Language) inside a Log Analytics Workspace, more flexible but slower than Metrics. An Alert rule has 3 parts: Scope (which resource), Condition (what triggers it), and Action Group (what to do when triggered — email, SMS, webhook, Azure Function).",
+            examTrap:"Easy to confuse: a Metric Alert reacts almost instantly (seconds/minutes), while a Log Alert (based on a KQL query) has more delay because the query runs on a cycle (e.g. every 5–15 minutes) — if a question needs 'alert IMMEDIATELY when CPU crosses a threshold,' the answer is a Metric Alert, not a Log Alert.",
             cli:"az monitor metrics alert create --name cpu-alert --resource-group MyRG --scopes /subscriptions/{sub-id}/resourceGroups/MyRG/providers/Microsoft.Compute/virtualMachines/myVM --condition \"avg Percentage CPU > 90\""
           }},
         {id:'l21', name:'Backup & Site Recovery',
@@ -518,8 +580,8 @@
             simple:"Azure Backup takes scheduled copies of VMs or files so you can restore after accidental deletion or corruption. Azure Site Recovery replicates entire VMs to another region so, if a whole datacenter goes down, you can fail over and keep running.",
             analogy:"Backup is a nightly photocopy of your files kept in a drawer. Site Recovery is a fully staffed duplicate office in another city, ready to take over the same afternoon if the main office burns down.",
             terms:[["Recovery Services Vault","Where backups and replication data are stored"],["Failover","Switching operation to the replicated site"]],
-            advanced:"Cả Backup và Site Recovery đều dùng chung Recovery Services Vault để lưu trữ. Backup có RPO (Recovery Point Objective) tính bằng GIỜ/NGÀY (dựa trên lịch backup, ví dụ mỗi 24h) — mất dữ liệu tối đa bằng khoảng cách giữa 2 lần backup. Site Recovery có RPO tính bằng GIÂY/PHÚT (replication gần liên tục) vì mục tiêu là failover nhanh, không phải chỉ lưu trữ.",
-            examTrap:"Bẫy kinh điển của domain này: đề mô tả tình huống cần 'khôi phục hoạt động trong vài phút nếu cả region bị sập' → đáp án PHẢI là Site Recovery, không phải Backup — nhiều người chọn nhầm Backup vì quen thuộc hơn, nhưng Backup không được thiết kế cho failover nhanh diện rộng.",
+            advanced:"Both Backup and Site Recovery use the same Recovery Services Vault for storage. Backup has an RPO (Recovery Point Objective) measured in HOURS/DAYS (based on the backup schedule, e.g. every 24h) — you can lose up to that much data between backups. Site Recovery has an RPO measured in SECONDS/MINUTES (near-continuous replication) because its goal is fast failover, not just storage.",
+            examTrap:"The classic trap in this domain: a question describing needing to 'resume operations within minutes if an entire region goes down' MUST point to Site Recovery, not Backup — people often pick Backup because it's more familiar, but Backup isn't designed for fast, wide-scale failover.",
             cli:"az backup protection enable-for-vm --resource-group MyRG --vault-name myVault --vm myVM --policy-name DefaultPolicy"
           }},
         {id:'l22', name:'Update Management & Maintenance',
@@ -527,9 +589,17 @@
             simple:"Azure Update Manager tracks which VMs are missing security patches and lets you schedule patching across many machines at once, instead of updating each one by hand.",
             analogy:"It's a fleet manager who checks every company car's maintenance status on one dashboard and books all the oil changes in one batch, rather than each driver remembering on their own.",
             terms:[["Update Manager","Tracks and schedules patching across VMs"],["Maintenance window","A scheduled time patching is allowed to run"]],
-            advanced:"Update Manager hỗ trợ cả Windows lẫn Linux, có thể lên lịch Maintenance Window (ví dụ chỉ patch vào 2h sáng Chủ Nhật) để tránh giờ cao điểm. Có thể nhóm VM theo Dynamic Scope (theo tag/resource group) để áp policy patch hàng loạt thay vì chọn từng máy. Update Manager cho biết compliance state: Compliant, Non-compliant, Unknown.",
-            examTrap:"Dễ nhầm: Update Manager quản lý patch OS-level (Windows Update, yum/apt), KHÔNG quản lý update firmware hay update ứng dụng bên trong VM — đề hay lồng ghép câu hỏi về 'cập nhật app' để xem bạn có phân biệt được phạm vi công cụ này không.",
+            advanced:"Update Manager supports both Windows and Linux, and lets you schedule a Maintenance Window (e.g. only patch at 2am on Sundays) to avoid peak hours. You can group VMs using a Dynamic Scope (by tag/resource group) to apply a patching policy in bulk instead of selecting machines one by one. Update Manager reports a compliance state: Compliant, Non-compliant, Unknown.",
+            examTrap:"Easy to confuse: Update Manager manages OS-level patching (Windows Update, yum/apt) — it does NOT manage firmware updates or updates to applications running inside the VM. Questions often blend in a question about 'updating an app' to test whether you know this tool's actual scope.",
             cli:"az vm assess-patches --resource-group MyRG --name myVM"
+          }},
+        {id:'l28', name:'Azure Arc — Managing Hybrid Resources',
+          detail:{
+            simple:"Azure Arc extends Azure's management tools to servers, Kubernetes clusters, and databases that live outside Azure — on-premises, or even in another cloud — so you can manage them from the same Azure Portal, with the same RBAC/Policy/Monitor tools, as if they were native Azure resources.",
+            analogy:"Think of Arc as giving every outside machine a 'guest badge' that makes Azure's dashboard, security rules, and monitoring treat it like it belongs there too, even though it physically lives somewhere else entirely.",
+            terms:[["Arc-enabled server","A non-Azure machine (on-prem or another cloud) projected into Azure as a manageable resource"],["Hybrid","Infrastructure spanning both on-premises and cloud environments"]],
+            advanced:"Once a server is Arc-enabled (by installing the Connected Machine agent), it gets an Azure Resource ID and can be governed by Azure Policy, monitored with Azure Monitor, and secured with RBAC exactly like a native Azure VM — even though the actual machine never moved. This is the core reason Arc was expanded in the 2026 exam update: administrators are now expected to manage hybrid environments as a normal part of the job, not an edge case.",
+            examTrap:"Trap: a question describing 'apply the same Azure Policy compliance and monitoring to an on-premises server as your cloud VMs, without migrating it to Azure' is pointing at Azure Arc — don't assume the answer requires actually moving/migrating the server into Azure.",
           }},
         {id:'l23', name:'Mock Exam 1 — Full Review',
           detail:{
@@ -560,152 +630,215 @@
     {lesson:'l12', q:"Your web app gets 10x traffic during a flash sale and needs extra servers automatically, then scale back down after.", opts:["A single larger VM","A VM Scale Set with autoscale","A Storage Account","A VPN Gateway"], a:1, why:"Scale Sets with autoscale rules add or remove identical VM instances automatically based on demand."},
     {lesson:'l13', q:"You need to deploy a web API quickly and don't want to manage patching or the underlying OS at all.", opts:["A Virtual Machine","Azure App Service","A Storage Account","An NSG"], a:1, why:"App Service runs your code directly — Azure handles the server, OS patching, and scaling for you."},
     {lesson:'l14', q:"You need to run one quick containerized job with no ongoing infrastructure to manage.", opts:["Azure Container Instances (ACI)","AKS","A VM Scale Set","App Service Plan"], a:0, why:"ACI runs single containers on demand with no cluster or infrastructure to manage — AKS is for orchestrating many containers at scale."},
+    {lesson:'l14', q:"You have several small microservices that each need to scale independently based on incoming events, and you don't want to operate a Kubernetes cluster yourself.", opts:["Azure Container Apps","A single large VM","Azure Files","A VPN Gateway"], a:0, why:"Container Apps gives you managed, serverless container hosting with per-service scaling, without exposing you to cluster operations the way AKS does."},
     {lesson:'l15', q:"You want to split one Virtual Network into a 'web' section and a 'database' section that can be secured separately.", opts:["Create two Subscriptions","Create Subnets within the VNet","Create two Storage Accounts","Add more Availability Zones"], a:1, why:"Subnets subdivide a VNet so different groups of resources can be organized and secured independently."},
     {lesson:'l16', q:"You want one firewall rule that instantly applies to every VM tagged as a web server, without listing each IP address.", opts:["A single NSG rule per VM","An Application Security Group referenced in an NSG rule","A Resource Group","A Load Balancer"], a:1, why:"ASGs let you group VMs by role so one NSG rule can target the whole group instead of individual IPs."},
     {lesson:'l17', q:"Two VNets in different regions need to talk to each other privately, without going over the public internet.", opts:["VNet Peering","A Load Balancer","Azure DNS","A Storage Account"], a:0, why:"VNet Peering privately connects VNets over Microsoft's backbone network rather than the public internet."},
     {lesson:'l18', q:"Incoming web traffic needs to be routed to different backend servers based on the URL path, like /images vs /api.", opts:["A basic Load Balancer","Application Gateway","A VPN Gateway","Azure DNS"], a:1, why:"Application Gateway operates at the web layer and can route based on URL path — a basic Load Balancer only works at the network level."},
     {lesson:'l19', q:"You've deployed a new app and need myapp.internal to resolve only inside your VNet, not on the public internet.", opts:["A public DNS zone","A Private DNS zone","A SAS token","An NSG rule"], a:1, why:"Private DNS zones resolve names only within the linked VNet(s), keeping internal names off the public internet."},
+    {lesson:'l26', q:"Administrators need to RDP into VMs for maintenance, but security requires that no VM ever has a public IP address.", opts:["Azure Bastion","A wide-open NSG rule","A public Load Balancer","Azure Files"], a:0, why:"Bastion provides browser-based RDP/SSH through the Portal over HTTPS, so the target VM never needs a public IP at all."},
+    {lesson:'l27', q:"You need the fastest way to check whether a specific NSG rule would allow or block one particular packet, without reading through every rule manually.", opts:["IP Flow Verify","NSG Flow Logs","Azure Policy","Update Manager"], a:0, why:"IP Flow Verify instantly evaluates a specific packet against the current rules and tells you which rule decided the outcome."},
     {lesson:'l20', q:"You want Azure to text you automatically the moment CPU usage on a VM exceeds 90%, instead of checking a dashboard yourself.", opts:["Set up an Alert rule with an Action Group","Enable Azure Policy","Create a new Resource Group","Add a data disk"], a:0, why:"Alert rules watch a metric or log condition and trigger notifications or actions via an Action Group automatically."},
     {lesson:'l21', q:"An entire region hosting your production VMs goes offline. You need the app running from another region within minutes.", opts:["Restore from Azure Backup","Fail over using Azure Site Recovery","Create a new Storage Account","Apply an Azure Policy"], a:1, why:"Site Recovery keeps a live replicated copy in another region ready for fast failover — Backup is for restoring point-in-time copies, which is slower and not built for full-region failover."},
     {lesson:'l22', q:"You manage 200 VMs and want to see, in one place, exactly which ones are missing critical security patches.", opts:["Azure Update Manager","Azure Policy","Azure DNS","Load Balancer"], a:0, why:"Update Manager gives a consolidated view of patch compliance and lets you schedule updates across many VMs at once."},
+    {lesson:'l28', q:"You want the same Azure Policy compliance checks and Azure Monitor visibility applied to an on-premises server as your cloud VMs, without migrating it into Azure.", opts:["Azure Arc","VNet Peering","Azure Bastion","A Private DNS Zone"], a:0, why:"Azure Arc projects a non-Azure server into Azure as a manageable resource, so Policy, Monitor, and RBAC apply to it just like a native Azure VM."},
+    {lesson:'l25', q:"You want to redeploy the exact same environment reliably across dev, test, and prod, instead of manually clicking through the Portal each time.", opts:["An ARM Template or Bicep file","A Resource Group name","A stronger access key","A Load Balancer"], a:0, why:"ARM Templates/Bicep declare the desired resources and configuration in a file, so the same deployment can be repeated exactly, driven by parameters per environment."},
 
-    // ---- Troubleshooting scenario questions (dạng khó nhất trong đề thật) ----
-    {lesson:'l16', type:'troubleshoot', q:"Một VM web server không nhận được traffic từ internet dù NSG ở mức Subnet đã có rule Allow port 80/443. Bạn đã kiểm tra Subnet NSG, mọi thứ đều đúng. Bước tiếp theo nên kiểm tra gì?", opts:["Kiểm tra NSG gắn ở NIC-level của chính VM đó","Tạo lại Resource Group","Đổi Access Tier của storage","Xoá và tạo lại Subscription"], a:0, why:"Traffic phải pass qua CẢ NSG ở Subnet-level LẪN NIC-level. Đúng ở 1 lớp không đủ — đây là lỗi troubleshooting rất hay gặp trong đề thi thật."},
-    {lesson:'l17', type:'troubleshoot', q:"VNet A peer với VNet B, VNet B peer với VNet C. Một VM trong VNet A báo không ping được VM trong VNet C, dù cả 2 peering đều 'Connected'. Nguyên nhân nhiều khả năng nhất là gì?", opts:["VNet Peering không bắc cầu (non-transitive) — cần peering trực tiếp A-C","NSG đang chặn toàn bộ ICMP","Address space bị trùng","VPN Gateway chưa được tạo"], a:0, why:"Đây là đặc điểm cố hữu của VNet Peering: không tự động bắc cầu qua VNet trung gian, dù từng cặp peering riêng lẻ đều hoạt động bình thường."},
-    {lesson:'l9', type:'troubleshoot', q:"Một ứng dụng dùng SAS token để đọc blob đột nhiên báo lỗi 403 Forbidden, dù token ghi hạn dùng đến cuối tháng sau. Khả năng cao nhất là gì?", opts:["Access Key mà SAS được ký đã bị regenerate/xoay vòng","Storage Account đã đổi tên","Blob đã bị nén lại","Subscription hết hạn"], a:0, why:"Account SAS/Service SAS được ký bằng Access Key — nếu key đó bị regenerate, mọi SAS ký bằng key cũ lập tức mất hiệu lực, bất kể ngày hết hạn ghi trong token."},
-    {lesson:'l13', type:'troubleshoot', q:"Sau khi Swap deployment slot từ staging sang production, ứng dụng production bắt đầu kết nối nhầm vào database của staging. Nguyên nhân nhiều khả năng nhất?", opts:["Connection string chưa được đánh dấu là 'slot setting' (sticky)","App Service Plan sai tier","NSG chặn kết nối database","Region của Web App bị đổi"], a:0, why:"Nếu setting không được đánh dấu sticky, nó sẽ đi theo CODE khi swap thay vì ở lại với slot — dẫn đến production vô tình dùng cấu hình của staging."},
-    {lesson:'l19', type:'troubleshoot', q:"Bạn tạo Private DNS Zone 'internal.contoso.com' và thêm record đúng, nhưng VM trong VNet vẫn không resolve được tên đó. Bạn đã kiểm tra record tồn tại. Bước tiếp theo?", opts:["Kiểm tra đã Link Private DNS Zone vào đúng VNet chưa","Xoá Zone và tạo lại","Đổi VM sang size lớn hơn","Kiểm tra lại Access Tier"], a:0, why:"Private DNS Zone chỉ có hiệu lực trong các VNet đã được Link tường minh (Virtual Network Link) — record tồn tại không có nghĩa VNet đã được liên kết để resolve nó."},
+    // ---- Extra questions to round out coverage for every lesson ----
+    {lesson:'l3', q:"You need a permission set for a very specific combination of actions that none of the built-in roles (Owner/Contributor/Reader) match. What should you create?", opts:["A Custom Role","A new Subscription","A Management Group","A second Resource Group"], a:0, why:"When the built-in roles aren't granular enough, a Custom Role lets you define exactly the permissions needed."},
+    {lesson:'l4', q:"Which Azure Policy effect automatically adds a missing 'Environment' tag to a resource at creation time, instead of just flagging it as non-compliant?", opts:["Append","Audit","Deny","Disabled"], a:0, why:"Append automatically adds a missing field/tag — Audit only logs non-compliance without fixing it, and Deny blocks creation entirely."},
+    {lesson:'l5', q:"A Budget alert in Cost Management is set at 80% of the monthly limit. What can happen automatically once spending crosses that threshold?", opts:["An Action Group is triggered (e.g. email or webhook)","The subscription is immediately suspended","All resources are deleted automatically","Nothing — budgets require someone to check manually"], a:0, why:"A Budget can be linked to an Action Group so crossing the threshold automatically notifies someone or triggers an automated response."},
+    {lesson:'l6', q:"What determines how many physical copies of your data are kept, and in which locations?", opts:["Access Tier","Redundancy option (e.g. LRS, GRS)","Container name","Blob type"], a:1, why:"Redundancy (LRS/ZRS/GRS/GZRS) controls copy count and location — Access Tier is a separate setting about cost vs. retrieval speed."},
+    {lesson:'l7', q:"You need blobs to move from Hot to Cool after 30 days, then to Archive after 180 days, fully automatically.", opts:["A single Lifecycle Management rule with multiple age-based actions","Three separate Storage Accounts","A Load Balancer rule","An NSG rule"], a:0, why:"One Lifecycle Management rule can define multiple age-based transitions in sequence, without needing separate accounts or manual steps."},
+    {lesson:'l8', q:"Which protocol does Azure Files use to let a Windows machine mount it like a normal network drive?", opts:["SMB","HTTP","SAS","ARM"], a:0, why:"Azure Files supports the SMB protocol, the same one regular Windows network shares use, which is why it can be mapped like a normal drive."},
+    {lesson:'l10', q:"What SLA does Azure guarantee for a single VM using Premium SSD, with no Availability Set or Zone configured?", opts:["99.9%","99.95%","99.99%","No SLA at all"], a:0, why:"A single VM on Premium SSD alone gets a 99.9% SLA — higher guarantees require an Availability Set (99.95%) or multiple Availability Zones (99.99%)."},
+    {lesson:'l11', q:"Which disk type lets you configure IOPS and throughput independently of the disk's size, at extra cost?", opts:["Standard HDD","Standard SSD","Ultra Disk","Archive tier"], a:2, why:"Ultra Disk decouples performance (IOPS/throughput) from capacity, letting you pay for exactly the performance a demanding workload needs."},
+    {lesson:'l12', q:"What's needed between scale-out and scale-in actions in an autoscale rule to prevent constant flapping?", opts:["A cooldown period","A bigger VM size","A second Load Balancer","A new Resource Group"], a:0, why:"A cooldown period stops the Scale Set from adding and removing instances back-to-back in reaction to short-term fluctuations."},
+    {lesson:'l13', q:"Which App Service feature lets multiple Web Apps share the same underlying compute resources to reduce cost?", opts:["An App Service Plan","A Deployment Slot","An Availability Zone","An NSG"], a:0, why:"Multiple Web Apps can run on the same App Service Plan, sharing its compute resources, as long as they stay within its capacity."},
+    {lesson:'l15', q:"How many IP addresses does Azure reserve for its own use in every subnet, regardless of subnet size?", opts:["2","5","10","0 — none are reserved"], a:1, why:"Azure always reserves 5 addresses per subnet (network address, gateway, 2 DNS, broadcast) — more than standard networking, which usually reserves only 2."},
+    {lesson:'l17', q:"VNet A is peered with VNet B. VNet B is peered with VNet C. What's true by default?", opts:["A can reach B, and B can reach C, but A cannot reach C","A can automatically reach both B and C","Peering always creates a full mesh across every peered VNet","Peering requires a VPN Gateway to function at all"], a:0, why:"VNet Peering is non-transitive — each peering only connects the two VNets directly involved, it never bridges through a third one automatically."},
+    {lesson:'l18', q:"Which Load Balancer SKU is required to support Availability Zones?", opts:["Basic","Standard","Free","Classic"], a:1, why:"Only the Standard SKU supports Availability Zones — Basic does not, and is also being phased out by Microsoft."},
+    {lesson:'l19', q:"A Private DNS Zone is created and linked only to VNet-A. Can a VM in VNet-B (not linked) resolve records in that zone?", opts:["No — the zone must be explicitly linked to VNet-B too","Yes — all VNets in the subscription can resolve any Private DNS Zone","Yes, but only over a VPN Gateway","No — a Private DNS Zone can never be linked to more than one VNet"], a:0, why:"A Private DNS Zone only has authority in the VNets it's explicitly linked to — being linked to VNet-A gives it no effect in VNet-B."},
+    {lesson:'l20', q:"Which reacts faster: a Metric Alert or a Log Alert based on a KQL query?", opts:["Metric Alert","Log Alert","They're always identical in speed","Log Alert, because it checks more data"], a:0, why:"Metric Alerts evaluate near-instantly, while Log Alerts run on a query cycle (e.g. every 5-15 minutes), introducing delay."},
+    {lesson:'l21', q:"What does Recovery Point Objective (RPO) actually measure?", opts:["How much data you could lose between the last backup/replication point and a failure","How fast a VM boots up after a restart","How many VMs a policy can protect at once","How much it costs to fail over to another region"], a:0, why:"RPO defines the maximum acceptable data loss window — how far back in time your last good copy might be when a failure happens."},
+    {lesson:'l22', q:"Which compliance states does Azure Update Manager report for a VM?", opts:["Compliant, Non-compliant, Unknown","Passed, Failed","Online, Offline","Healthy, Critical, Warning"], a:0, why:"Update Manager reports patch compliance as Compliant, Non-compliant, or Unknown for each managed VM."},
+    {lesson:'l25', q:"In an ARM/Bicep deployment, what does Incremental mode do that Complete mode does not?", opts:["It leaves resources not described in the template untouched","It deletes all existing resources first, then redeploys","It only works with Bicep files, never JSON","It requires manual approval before every single resource"], a:0, why:"Incremental mode only adds/updates what's declared in the template and leaves everything else in the Resource Group alone — Complete mode deletes anything not declared."},
+    {lesson:'l26', q:"What is the minimum required subnet size for deploying Azure Bastion, and what must that subnet be named?", opts:["/26, named exactly 'AzureBastionSubnet'","/24, named 'BastionSubnet'","/16, any name is fine","/30, named 'Bastion'"], a:0, why:"Bastion requires its own dedicated subnet, minimum size /26, with the exact reserved name 'AzureBastionSubnet.'"},
+    {lesson:'l27', q:"Which Network Watcher tool records a historical log of all traffic that hit an NSG, whether allowed or denied?", opts:["NSG Flow Logs","IP Flow Verify","Connection Troubleshoot","Update Manager"], a:0, why:"NSG Flow Logs capture ongoing traffic history over time — IP Flow Verify only checks one hypothetical packet right now, instantly."},
+    {lesson:'l28', q:"What must be installed on an on-premises server to make it manageable through Azure Arc?", opts:["The Connected Machine agent","Azure Bastion","A Recovery Services Vault agent","A Load Balancer agent"], a:0, why:"Installing the Connected Machine agent is what projects a non-Azure server into Azure as an Arc-enabled, manageable resource."},
+
+    // ---- Multi-select questions ("select all that apply") for exam-format variety ----
+    {lesson:'l3', type:'multiselect', q:"Which of the following are valid built-in Azure RBAC roles? (Select all that apply)", opts:["Owner","Contributor","Reader","Administrator"], correct:[0,1,2], why:"Owner, Contributor, and Reader are the three fundamental built-in roles. 'Administrator' isn't a built-in Azure RBAC role name by itself."},
+    {lesson:'l6', type:'multiselect', q:"Which of these are real Azure Storage access tiers? (Select all that apply)", opts:["Hot","Cool","Warm","Archive"], correct:[0,1,3], why:"Hot, Cool, and Archive (along with Cold) are real Azure access tiers — 'Warm' isn't an actual tier name."},
+    {lesson:'l10', type:'multiselect', q:"Which of these are mechanisms for making VMs more resilient to failure? (Select all that apply)", opts:["Availability Zones","Availability Sets","VM Scale Sets with autoscale","Storage access tiers"], correct:[0,1,2], why:"Availability Zones, Availability Sets, and Scale Sets are all VM resiliency/scaling mechanisms. Storage access tiers control cost vs. retrieval speed and have nothing to do with VM availability."},
+    {lesson:'l16', type:'multiselect', q:"Which of the following can an NSG rule filter traffic by? (Select all that apply)", opts:["Source/destination IP address","Port number","Protocol (TCP/UDP)","The VM's disk type"], correct:[0,1,2], why:"NSG rules filter by IP, port, and protocol — a VM's disk type has nothing to do with network filtering."},
+    {lesson:'l20', type:'multiselect', q:"Which of these are the actual parts of an Azure Monitor Alert rule? (Select all that apply)", opts:["Scope","Condition","Action Group","Access Tier"], correct:[0,1,2], why:"An alert rule is built from Scope + Condition + Action Group. Access Tier is a Storage concept, unrelated to alerts."},
+    {lesson:'l14', type:'multiselect', q:"Which of these are valid ways to run containers on Azure? (Select all that apply)", opts:["Azure Container Instances (ACI)","Azure Kubernetes Service (AKS)","Azure Container Apps","Azure Bastion"], correct:[0,1,2], why:"ACI, AKS, and Container Apps are all container-hosting options on Azure. Bastion is a secure remote-access service, unrelated to containers."},
+
+    // ---- Troubleshooting scenario questions (the hardest style on the real exam) ----
+    {lesson:'l16', type:'troubleshoot', q:"A web server VM isn't receiving traffic from the internet even though the Subnet-level NSG has an Allow rule for ports 80/443. You've checked the Subnet NSG and everything looks correct. What should you check next?", opts:["The NSG attached at the VM's NIC level","Recreate the Resource Group","Change the storage account's Access Tier","Delete and recreate the Subscription"], a:0, why:"Traffic must pass through BOTH the Subnet-level NSG AND the NIC-level NSG. Being correct at only one layer isn't enough — this is a very common real troubleshooting scenario."},
+    {lesson:'l17', type:'troubleshoot', q:"VNet A is peered with VNet B, and VNet B is peered with VNet C. A VM in VNet A reports it can't ping a VM in VNet C, even though both peerings show as 'Connected.' What's the most likely cause?", opts:["VNet Peering is non-transitive — a direct A-C peering is required","ICMP is being blocked by an NSG entirely","The address spaces overlap","A VPN Gateway hasn't been created"], a:0, why:"This is an inherent property of VNet Peering: it never automatically bridges through an intermediate VNet, even though each individual peering works fine on its own."},
+    {lesson:'l9', type:'troubleshoot', q:"An application using a SAS token to read a blob suddenly starts getting 403 Forbidden errors, even though the token's expiry is still a month away. What's the most likely cause?", opts:["The Access Key the SAS was signed with was regenerated/rotated","The Storage Account was renamed","The blob was compressed","The subscription expired"], a:0, why:"Account SAS/Service SAS tokens are signed with an Access Key — if that key is regenerated, every SAS signed with the old key becomes invalid immediately, regardless of the expiry date printed in the token."},
+    {lesson:'l13', type:'troubleshoot', q:"After swapping a deployment slot from staging to production, the production app starts connecting to the staging database by mistake. What's the most likely cause?", opts:["The connection string wasn't marked as a sticky 'slot setting'","The App Service Plan tier is wrong","An NSG is blocking the database connection","The Web App's region changed"], a:0, why:"If a setting isn't marked sticky, it follows the CODE during a swap instead of staying with the slot — causing production to end up with staging's configuration."},
+    {lesson:'l19', type:'troubleshoot', q:"You created a Private DNS Zone 'internal.contoso.com' and added the correct record, but a VM in the VNet still can't resolve that name. You've confirmed the record exists. What should you check next?", opts:["Whether the Private DNS Zone has been Linked to the correct VNet","Delete the Zone and recreate it","Resize the VM","Check the Access Tier again"], a:0, why:"A Private DNS Zone only has authority in VNets it has been explicitly Linked to — the record existing doesn't mean the VNet has been connected to resolve it."},
+    {lesson:'l18', type:'troubleshoot', q:"You just upgraded a Load Balancer from Basic to Standard SKU, and now VMs behind it stop receiving any inbound traffic at all, even though nothing else changed. What's the most likely cause?", opts:["Standard SKU defaults to blocking inbound traffic unless an NSG explicitly allows it","The backend pool was deleted","The VMs ran out of disk space","DNS stopped resolving"], a:0, why:"Basic Load Balancer defaults to allowing traffic with no NSG present; Standard defaults to denying it unless an NSG explicitly permits it — a very common gotcha when upgrading SKUs."},
   ];
 
-  // ---- Reference Library: bảng so sánh dịch vụ dễ nhầm + giới hạn dịch vụ ----
+  // ---- Reference Library: commonly-confused service comparisons + service limits ----
   const COMPARISON_TABLES = [
     {
       title:"Load Balancer: Basic vs Standard",
-      columns:["Tiêu chí","Basic","Standard","Khi nào dùng"],
+      columns:["Criteria","Basic","Standard","When to use"],
       rows:[
-        ["SLA","Không có SLA","99.99%","Production quan trọng → luôn chọn Standard"],
-        ["Availability Zone","Không hỗ trợ","Có hỗ trợ","Cần chịu lỗi cả zone → Standard"],
-        ["NSG mặc định","Cho phép nếu không có NSG","Chặn nếu không có NSG tường minh","Nhớ thêm NSG khi nâng cấp lên Standard"],
-        ["Chi phí","Miễn phí","Tính phí theo giờ + luật lượng","Basic phù hợp demo/học tập, không phù hợp production"],
+        ["SLA","No SLA","99.99%","Any real production workload — always choose Standard"],
+        ["Availability Zones","Not supported","Supported","Need to survive a whole zone failing → Standard"],
+        ["Default NSG behavior","Allows traffic if no NSG present","Blocks traffic unless an NSG explicitly allows it","Remember to add an NSG when upgrading to Standard"],
+        ["Status","Being retired by Microsoft","Current default going forward","Treat Basic as legacy — expect exam questions to frame it as the wrong answer"],
       ]
     },
     {
       title:"NSG vs ASG vs Azure Firewall",
-      columns:["Tiêu chí","NSG","ASG","Azure Firewall"],
+      columns:["Criteria","NSG","ASG","Azure Firewall"],
       rows:[
-        ["Cấp độ","Subnet / NIC","Gắn kèm NSG (nhóm VM theo vai trò)","Toàn VNet / Hub"],
-        ["Loại luật","Allow/Deny theo port, IP","Không tự có luật — chỉ là nhãn nhóm","Allow/Deny + lọc theo ứng dụng/FQDN"],
-        ["Trạng thái (stateful)","Có","Có (kế thừa từ NSG)","Có, kèm threat intelligence"],
-        ["Khi nào dùng","Kiểm soát cơ bản vào/ra 1 subnet","Nhóm nhiều VM cùng vai trò để viết rule gọn hơn","Kiểm soát tập trung, lọc theo domain, log chi tiết cho cả hub nhiều VNet"],
+        ["Level","Subnet / NIC","Attached alongside an NSG (groups VMs by role)","Whole VNet / hub"],
+        ["Rule type","Allow/Deny by port, IP","No rules of its own — just a label for grouping","Allow/Deny + filtering by application/FQDN"],
+        ["Stateful","Yes","Yes (inherited from the NSG)","Yes, plus threat intelligence"],
+        ["When to use","Basic control of traffic in/out of one subnet","Group several VMs with the same role so one rule covers them all","Centralized control, domain-name filtering, detailed logging across a hub with many VNets"],
       ]
     },
     {
       title:"Backup vs Site Recovery",
-      columns:["Tiêu chí","Azure Backup","Azure Site Recovery"],
+      columns:["Criteria","Azure Backup","Azure Site Recovery"],
       rows:[
-        ["Mục đích","Khôi phục sau xoá/hỏng dữ liệu","Failover khi cả region/datacenter sập"],
-        ["RPO (mất dữ liệu tối đa)","Giờ - ngày (theo lịch backup)","Giây - phút (gần liên tục)"],
-        ["Tốc độ khôi phục","Chậm hơn — restore từ bản snapshot","Nhanh — failover gần như tức thời"],
-        ["Khi nào dùng","Lỡ tay xoá VM/file, cần bản cũ","Cần duy trì hoạt động dù mất cả region"],
+        ["Purpose","Recover after deletion/corruption","Failover when a whole region/datacenter goes down"],
+        ["RPO (max data loss)","Hours to days (based on backup schedule)","Seconds to minutes (near-continuous)"],
+        ["Recovery speed","Slower — restoring from a snapshot","Fast — near-instant failover"],
+        ["When to use","Accidentally deleted a VM/file, need an older version back","Need to keep running even if you lose an entire region"],
       ]
     },
     {
       title:"Availability Set vs Availability Zone vs Scale Set",
-      columns:["Tiêu chí","Availability Set","Availability Zone","VM Scale Set"],
+      columns:["Criteria","Availability Set","Availability Zone","VM Scale Set"],
       rows:[
-        ["Bảo vệ khỏi","Lỗi phần cứng/nguồn trong 1 datacenter","Lỗi cả 1 datacenter (khác datacenter vật lý)","Không phải mục đích chính — mục đích là autoscale"],
-        ["SLA","99.95%","99.99%","Tuỳ cấu hình, có thể kết hợp với Zone"],
-        ["Có thể dùng chung không?","Không thể dùng chung với Zone cho 1 VM","Không thể dùng chung với Availability Set","Có thể cấu hình Scale Set trải trên nhiều Zone"],
-        ["Khi nào dùng","Chấp nhận rủi ro mất cả datacenter, chỉ cần chống lỗi phần cứng lẻ tẻ","Cần chịu được cả datacenter sập","Tải lên xuống thất thường, cần tự động thêm/bớt máy"],
+        ["Protects against","Hardware/power failure within one datacenter","An entire datacenter failing (physically separate datacenters)","Not its main purpose — its purpose is autoscale"],
+        ["SLA","99.95%","99.99%","Depends on configuration; can be combined with Zones"],
+        ["Can combine?","Cannot be combined with Availability Zones for the same VM","Cannot be combined with an Availability Set","Can be configured to spread across multiple Zones"],
+        ["When to use","Accept the risk of a whole datacenter failing, just need protection from isolated hardware issues","Need to survive an entire datacenter going down","Load rises and falls unpredictably, need to add/remove machines automatically"],
       ]
     },
   ];
 
   const SERVICE_LIMITS = [
-    ["Số subnet tối đa / VNet","3.000 (giới hạn ở mức region, không phải cứng mỗi VNet)"],
-    ["Số IP hệ thống Azure giữ lại / subnet","5 (network, gateway, 2 DNS, broadcast)"],
-    ["Số VNet Peering / VNet","tối đa 500"],
-    ["Kích thước Resource Group tối đa","800 resource cùng loại API version trong 1 RG (giới hạn thực tế theo loại resource)"],
-    ["Số Storage Account / Subscription (mặc định)","250 (có thể xin nâng lên)"],
-    ["Độ dài tên Storage Account","3-24 ký tự, chỉ chữ thường + số, duy nhất toàn Azure"],
-    ["Số NSG rule tối đa / NSG","1.000"],
-    ["Số Tag / resource","50"],
-    ["Số Access Key / Storage Account","2 (key1, key2)"],
-    ["Số Management Group hierarchy tối đa","6 cấp"],
-    ["VM Scale Set (Uniform mode) tối đa","1.000 instance"],
+    ["Reserved system IPs per subnet","5 (network address, gateway, 2 reserved DNS, broadcast)"],
+    ["VNet Peerings per VNet","Up to 500"],
+    ["Storage Accounts per Subscription (default)","250 (can be raised on request)"],
+    ["Storage Account name length","3-24 characters, lowercase letters + numbers only, globally unique across Azure"],
+    ["NSG rules per NSG","Up to 1,000"],
+    ["Tags per resource","50"],
+    ["Access Keys per Storage Account","2 (key1, key2)"],
+    ["Management Group hierarchy depth","Up to 6 levels"],
+    ["VM Scale Set (Uniform mode)","Up to 1,000 instances"],
+    ["AzureBastionSubnet minimum size","/26"],
   ];
 
-  // ---- Hands-on labs (dạng checklist thao tác, không có ảnh chụp thật — mô tả chính xác từng bước) ----
+  // ---- Hands-on labs (step-by-step checklists — no real screenshots, precise instructions instead) ----
   const LABS = {
     'identity-gov':{
-      title:"Lab: Tạo Resource Group + gán RBAC",
+      title:"Lab: Create a Resource Group + assign RBAC",
       steps:[
-        "Đăng nhập portal.azure.com bằng tài khoản Azure Free Tier của bạn",
-        "Vào Home → Resource groups → + Create, đặt tên 'rg-lab-01', chọn region Southeast Asia",
-        "Vào Resource Group vừa tạo → Access control (IAM) → + Add → Add role assignment",
-        "Chọn role 'Reader', gán cho chính tài khoản của bạn (hoặc một user test) ở scope Resource Group",
-        "Vào lại IAM → View access → xác nhận role assignment đã xuất hiện đúng scope",
+        "Sign in to portal.azure.com with your Azure Free Tier account",
+        "Go to Home → Resource groups → + Create, name it 'rg-lab-01', choose the Southeast Asia region",
+        "Open the new Resource Group → Access control (IAM) → + Add → Add role assignment",
+        "Choose the 'Reader' role, assign it to your own account (or a test user) at Resource Group scope",
+        "Go back to IAM → View access → confirm the role assignment shows up at the correct scope",
       ]
     },
     'storage':{
-      title:"Lab: Tạo Storage Account + thử SAS token",
+      title:"Lab: Create a Storage Account + test a SAS token",
       steps:[
-        "Home → Storage accounts → + Create, đặt tên duy nhất, chọn Standard_LRS, Access tier = Hot",
-        "Vào Containers → + Container, tạo container 'test-container', upload 1 file bất kỳ",
-        "Vào file vừa upload → Generate SAS → chọn quyền Read, hết hạn sau 1 giờ → Generate SAS token and URL",
-        "Copy URL vừa tạo, mở bằng trình duyệt ẩn danh (không đăng nhập) — xác nhận tải được file",
-        "Quay lại Access keys → Regenerate key1 → thử lại URL cũ, quan sát lỗi 403 nếu SAS ký bằng key1",
+        "Home → Storage accounts → + Create, pick a globally unique name, Standard_LRS, Access tier = Hot",
+        "Go to Containers → + Container, create 'test-container', upload any file",
+        "Open the uploaded file → Generate SAS → choose Read permission, expiry 1 hour → Generate SAS token and URL",
+        "Copy the URL, open it in a private/incognito browser window (not signed in) — confirm the file downloads",
+        "Go back to Access keys → Regenerate key1 → try the same URL again, observe the 403 error if the SAS was signed with key1",
       ]
     },
     'compute':{
-      title:"Lab: Tạo VM + thử đổi disk tier",
+      title:"Lab: Create a VM + try changing disk tier",
       steps:[
-        "Home → Virtual machines → + Create, chọn image Ubuntu, size Standard_D2s_v3, region bất kỳ",
-        "Sau khi VM chạy, vào Disks → chọn OS disk → Size + performance",
-        "Thử đổi Account type từ Standard SSD sang Premium SSD khi VM ĐANG chạy — quan sát thông báo yêu cầu Stop VM trước",
-        "Stop (deallocate) VM → thực hiện lại thao tác đổi tier → xác nhận thành công",
-        "Start lại VM, kiểm tra hiệu năng disk mới trong Overview",
+        "Home → Virtual machines → + Create, choose an Ubuntu image, size Standard_D2s_v3, any region",
+        "Once the VM is running, go to Disks → select the OS disk → Size + performance",
+        "Try changing the Account type from Standard SSD to Premium SSD while the VM is RUNNING — observe the prompt requiring you to stop the VM first",
+        "Stop (deallocate) the VM → repeat the tier change → confirm it succeeds",
+        "Start the VM again, check the new disk's performance in Overview",
       ]
     },
     'networking':{
-      title:"Lab: Tạo VNet + Subnet + NSG, thử bẫy 2 lớp NSG",
+      title:"Lab: Create a VNet + Subnet + NSG, reproduce the two-layer NSG trap",
       steps:[
-        "Home → Virtual networks → + Create, đặt address space 10.0.0.0/16, tạo subnet 10.0.1.0/24",
-        "Tạo Network Security Group riêng, thêm rule Allow Inbound port 3389 (RDP) hoặc 22 (SSH), priority 100",
-        "Gán NSG này vào Subnet vừa tạo (Subnetsassociate NSG)",
-        "Tạo thêm 1 NSG khác, KHÔNG thêm rule Allow cho port đó, gán vào NIC của VM nằm trong subnet",
-        "Thử kết nối vào VM — quan sát traffic vẫn bị chặn dù Subnet NSG đã cho phép, vì NIC NSG chưa cho phép",
+        "Home → Virtual networks → + Create, set address space 10.0.0.0/16, create a subnet 10.0.1.0/24",
+        "Create a separate Network Security Group, add an Allow Inbound rule for port 3389 (RDP) or 22 (SSH), priority 100",
+        "Associate this NSG with the Subnet you created",
+        "Create a second NSG, do NOT add an Allow rule for that port, associate it with the VM's NIC instead",
+        "Try to connect to the VM — observe that traffic is still blocked even though the Subnet NSG allows it, because the NIC NSG doesn't",
       ]
     },
     'monitor-mock':{
-      title:"Lab: Tạo Alert rule cảnh báo CPU cao",
+      title:"Lab: Create an alert rule for high CPU",
       steps:[
-        "Vào VM đã tạo ở lab trước → Monitoring → Alerts → + Create alert rule",
-        "Chọn Signal 'Percentage CPU', điều kiện 'Greater than 80', aggregation Average, trong 5 phút",
-        "Tạo Action Group mới, thêm email của bạn để nhận thông báo",
-        "Lưu alert rule, tạo tải giả (ví dụ chạy stress-ng trong VM Linux) để kích hoạt cảnh báo",
-        "Kiểm tra email nhận được cảnh báo — xoá alert rule sau khi test xong để tránh phát sinh chi phí không cần thiết",
+        "Open the VM from the earlier lab → Monitoring → Alerts → + Create alert rule",
+        "Choose the 'Percentage CPU' signal, condition 'Greater than 80', Average aggregation over 5 minutes",
+        "Create a new Action Group, add your email to receive the notification",
+        "Save the alert rule, generate some artificial load (e.g. run stress-ng on a Linux VM) to trigger it",
+        "Confirm you receive the alert email — delete the alert rule afterward to avoid unnecessary cost",
       ]
     }
   };
 
-  // ---- Case-study clusters cho đề thi thử (1 tình huống, nhiều câu hỏi liên quan) ----
+  // ---- Case-study clusters for the mock exam (one scenario, several related questions) ----
   const CASE_STUDIES = [
     {
       id:'cs1', domain:'networking',
-      scenario:"Công ty Contoso có VNet-Prod (10.0.0.0/16) chứa 2 subnet: subnet-web (10.0.1.0/24) và subnet-db (10.0.2.0/24). Đội bảo mật yêu cầu: subnet-db chỉ được nhận traffic từ subnet-web, không được truy cập trực tiếp từ internet. Đồng thời công ty có VNet-DR ở region khác dùng cho disaster recovery, cần kết nối riêng tư với VNet-Prod.",
+      scenario:"Contoso has a VNet-Prod (10.0.0.0/16) containing two subnets: subnet-web (10.0.1.0/24) and subnet-db (10.0.2.0/24). The security team requires that subnet-db only accept traffic from subnet-web, never directly from the internet. Contoso also has a VNet-DR in a different region for disaster recovery, which needs a private connection to VNet-Prod.",
       questions:[
-        {q:"Để chặn subnet-db nhận traffic trực tiếp từ internet nhưng vẫn cho phép từ subnet-web, bạn nên dùng gì?", opts:["NSG trên subnet-db với rule Allow từ dải IP subnet-web, Deny còn lại","Xoá subnet-db","Một Storage Account riêng","Một Load Balancer Basic"], a:0, why:"NSG cho phép định nghĩa rule allow/deny theo dải IP nguồn — cho phép đúng subnet-web và chặn phần còn lại là cách chuẩn để cô lập subnet-db."},
-        {q:"Để VNet-Prod và VNet-DR (khác region) kết nối riêng tư với nhau, không qua internet công cộng, giải pháp phù hợp nhất là gì?", opts:["VNet Peering (hỗ trợ cả liên region)","VPN Gateway","Một Storage Account chung","Azure DNS"], a:0, why:"VNet Peering hỗ trợ kết nối liên vùng (global peering) và đi qua backbone riêng của Microsoft, phù hợp hơn VPN Gateway (vốn dùng cho kết nối on-premises)."},
-        {q:"Vài tháng sau, công ty thêm VNet-Branch, peer với VNet-DR. Nhân viên ở VNet-Branch báo không truy cập được VNet-Prod. Nguyên nhân?", opts:["VNet Peering không bắc cầu — cần peering trực tiếp Branch-Prod","subnet-db bị xoá","NSG hết hạn","Address space hết dung lượng"], a:0, why:"Đây chính là đặc điểm non-transitive của VNet Peering — Branch peer với DR không có nghĩa Branch tự động thấy được Prod."},
+        {q:"To block subnet-db from receiving traffic directly from the internet while still allowing traffic from subnet-web, what should you use?", opts:["An NSG on subnet-db with an Allow rule from subnet-web's IP range, Deny for everything else","Delete subnet-db","A separate Storage Account","A Basic Load Balancer"], a:0, why:"An NSG lets you define allow/deny rules by source IP range — allowing exactly subnet-web and blocking everything else is the standard way to isolate subnet-db."},
+        {q:"To connect VNet-Prod and VNet-DR (different region) privately, without going over the public internet, what's the best fit?", opts:["VNet Peering (supports cross-region connections)","VPN Gateway","A shared Storage Account","Azure DNS"], a:0, why:"VNet Peering supports global (cross-region) peering and routes over Microsoft's own backbone — a better fit here than VPN Gateway, which is meant for on-premises connections."},
+        {q:"Months later, Contoso adds a VNet-Branch, peered with VNet-DR. Staff on VNet-Branch report they can't reach VNet-Prod. What's the cause?", opts:["VNet Peering is non-transitive — a direct Branch-Prod peering is required","subnet-db was deleted","The NSG expired","The address space ran out of capacity"], a:0, why:"This is exactly the non-transitive property of VNet Peering — Branch peering with DR doesn't automatically give Branch visibility into Prod."},
       ]
     },
     {
       id:'cs2', domain:'compute',
-      scenario:"Fabrikam vận hành một web app trên 3 VM giống hệt nhau để chịu tải cao điểm buổi tối. Vào ban ngày, lượng truy cập rất thấp và công ty muốn tiết kiệm chi phí. Ứng dụng cũng cần đảm bảo không downtime khi Azure bảo trì phần cứng.",
+      scenario:"Fabrikam runs a web app on 3 identical VMs to handle high evening traffic. During the day, traffic is very low and the company wants to save cost. The application also needs to stay up with no downtime when Azure performs hardware maintenance.",
       questions:[
-        {q:"Để tự động thêm VM vào buổi tối và giảm vào ban ngày mà không cần can thiệp thủ công, giải pháp phù hợp nhất là gì?", opts:["VM Scale Set với Autoscale rule theo CPU hoặc lịch","Availability Set","3 VM đơn lẻ cấu hình giống nhau","Azure Policy"], a:0, why:"Scale Set với autoscale (theo metric hoặc theo lịch) là cơ chế được thiết kế riêng cho đúng nhu cầu tăng giảm số lượng VM tự động này."},
-        {q:"Để đảm bảo không phải toàn bộ VM cùng bị ảnh hưởng khi Azure bảo trì phần cứng trong CÙNG một datacenter, Scale Set nên được cấu hình thêm gì?", opts:["Trải các instance qua nhiều Fault Domain/Update Domain hoặc nhiều Availability Zone","Đổi sang Basic Load Balancer","Xoá Load Balancer","Dùng chung 1 Fault Domain cho tất cả"], a:0, why:"Trải instance qua nhiều Fault Domain (hoặc Availability Zone nếu cần bảo vệ mức datacenter) tránh việc toàn bộ VM cùng nằm trên phần cứng bảo trì cùng lúc."},
+        {q:"To automatically add VMs in the evening and reduce them during the day without manual intervention, what's the best fit?", opts:["A VM Scale Set with an autoscale rule based on CPU or a schedule","An Availability Set","3 separate identically-configured VMs","Azure Policy"], a:0, why:"A Scale Set with autoscale (by metric or by schedule) is purpose-built for exactly this need to grow and shrink instance count automatically."},
+        {q:"To make sure not all VMs are affected at once when Azure performs hardware maintenance within the SAME datacenter, what should the Scale Set additionally use?", opts:["Spread instances across multiple Fault Domains/Update Domains, or across multiple Availability Zones","Switch to a Basic Load Balancer","Remove the Load Balancer","Put every instance in the same Fault Domain"], a:0, why:"Spreading instances across Fault Domains (or Availability Zones if datacenter-level protection is required) avoids having every VM land on hardware being maintained at the same time."},
+      ]
+    },
+    {
+      id:'cs3', domain:'identity-gov',
+      scenario:"Fabrikam is growing fast. The security team wants new hires automatically placed into the correct access group based on their department, without HR or IT manually adding them each time. They also want IT staff to only be able to manage resources in their own department's Resource Group, not the whole company, and want to guarantee every storage account is created only in the 'Southeast Asia' region without depending on people remembering to check.",
+      questions:[
+        {q:"How should new hires be automatically placed into the correct group based on their department, with no manual step?", opts:["A Dynamic Group with a membership rule based on the department attribute","An Assigned Group, added manually by HR each time","A Custom Role","A Resource Group"], a:0, why:"Dynamic Group membership rules evaluate a user attribute like department automatically — no manual assignment step needed."},
+        {q:"How should IT staff be limited to managing resources only within their own department's Resource Group?", opts:["Assign them the Contributor role scoped to their department's Resource Group only","Assign them Owner at the Subscription level","Give them the Global Administrator role","Put them in a Microsoft 365 Group"], a:0, why:"RBAC scope should be set at exactly the Resource Group needed — Contributor lets them manage resources without granting the ability to assign access to others."},
+        {q:"How can Fabrikam guarantee every storage account is created only in 'Southeast Asia,' without relying on people remembering?", opts:["An Azure Policy with a Deny effect restricting allowed regions","A support ticket process","Training all IT staff","A Resource Group naming convention"], a:0, why:"Only Azure Policy can automatically and reliably block creation outside an approved region — training and naming conventions depend on people remembering, which isn't guaranteed."},
+      ]
+    },
+    {
+      id:'cs4', domain:'storage',
+      scenario:"Northwind Traders stores two kinds of data in Azure: scanned invoices that must be retrievable instantly whenever an auditor asks, for the next 2 years, and old server backup files that legally must be kept for 10 years but are expected to almost never be opened. They also need to let an external auditor download just the invoices for one week, without giving that auditor any Azure account.",
+      questions:[
+        {q:"Which access tier fits the scanned invoices, which must be available instantly at any time?", opts:["Hot","Cool","Archive","Premium SSD"], a:0, why:"Data that must be instantly retrievable at any time fits the Hot tier — Cool and Archive trade retrieval speed for lower storage cost."},
+        {q:"Which tier fits the old backup files — kept for compliance, but almost never opened?", opts:["Hot","Cool","Archive","Standard SSD"], a:2, why:"Archive is the cheapest option for data that's rarely, if ever, accessed — ideal for long-term compliance retention."},
+        {q:"How should the external auditor get one week of download access to just the invoices, without an Azure account?", opts:["Generate a SAS token scoped to that container, expiring in one week","Give them the storage account access key","Make the container fully public","Create them a Global Administrator account"], a:0, why:"A SAS token grants scoped, time-limited access to exactly the resource needed, without requiring an Azure account or exposing the master key."},
+      ]
+    },
+    {
+      id:'cs5', domain:'monitor-mock',
+      scenario:"Contoso's IT team wants to know immediately if any production VM's CPU spikes above 90%, and separately wants to review a full month of failed sign-in attempts when investigating an incident. They also operate 5 on-premises servers alongside their Azure VMs and want the same patch-compliance visibility and Azure Policy checks applied to all of them from one dashboard.",
+      questions:[
+        {q:"Which tool should trigger a near-instant notification when CPU crosses 90%?", opts:["A Metric Alert with an Action Group","A Log Alert using a KQL query that runs once a day","Azure Policy","Update Manager"], a:0, why:"Metric Alerts react in near real-time to a numeric threshold — a daily Log Alert would introduce unacceptable delay for this need."},
+        {q:"Which tool lets them query a full month of historical failed sign-in attempts?", opts:["Log Analytics using a KQL query","A Metric Alert","Azure Bastion","A Recovery Services Vault"], a:0, why:"Log Analytics stores detailed log data (like sign-in logs) that can be queried historically with KQL — Metrics are numeric time-series data, not detailed event records."},
+        {q:"How can the 5 on-premises servers get the same patch-compliance visibility and Policy checks as their Azure VMs, from one dashboard?", opts:["Enable Azure Arc on the on-premises servers","Physically migrate the servers into an Azure datacenter","Create a VPN Gateway","Use Azure Bastion"], a:0, why:"Azure Arc projects non-Azure servers into Azure as manageable resources, so Policy, Monitor, and Update Manager apply to them without migration."},
       ]
     },
   ];
@@ -715,21 +848,21 @@
     return null;
   }
 
-  // Nếu Supabase chưa được cấu hình, app vẫn chạy được ở chế độ session-only
-  // (giống bản demo trước) để bạn test giao diện trước khi nối backend thật.
+  // If Supabase isn't configured yet, the app still runs in session-only mode
+  // (like the earlier demo) so you can test the UI before wiring up the backend.
   let sessionNoticeShown = false;
   function showSessionNotice(){
     if(sessionNoticeShown || supabaseConfigured) return;
     sessionNoticeShown = true;
     const el = document.createElement('div');
     el.style.cssText = 'position:fixed; bottom:16px; right:16px; background:#232B4E; border:1px solid rgba(240,168,87,0.4); color:#EDEEF3; font-family:Inter,sans-serif; font-size:12.5px; padding:10px 14px; border-radius:10px; max-width:280px; z-index:99;';
-    el.textContent = "Chưa cấu hình Supabase — đang chạy chế độ session-only, tiến độ sẽ mất khi tải lại trang.";
+    el.textContent = "Supabase isn't configured yet — running in session-only mode, progress will be lost on reload.";
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 7000);
   }
 
   let currentUser = null;
-  let memoryFallback = null; // dùng khi chưa cấu hình Supabase
+  let memoryFallback = null; // used when Supabase isn't configured yet
 
   const store = {
     async get(fallback){
@@ -746,7 +879,8 @@
         notes: data.notes || {},
         studyMinutes: data.study_minutes || 30,
         srs: data.srs || {},
-        labProgress: data.lab_progress || {}
+        labProgress: data.lab_progress || {},
+        confidence: data.confidence || {}
       };
     },
     async set(value){
@@ -765,16 +899,17 @@
         study_minutes: value.studyMinutes,
         srs: value.srs,
         lab_progress: value.labProgress,
+        confidence: value.confidence,
         updated_at: new Date().toISOString()
       });
-      if(error) console.error('Lỗi lưu tiến độ lên Supabase:', error);
+      if(error) console.error('Error saving progress to Supabase:', error);
     }
   };
 
-  // ---- Đăng nhập bằng magic link ----
-  // ====== TẠM TẮT ĐĂNG NHẬP EMAIL ======
-  // Vào thẳng app, không cần magic link nữa. Tiến độ sẽ lưu session-only (mất khi tải lại trang)
-  // cho đến khi bạn muốn bật lại đăng nhập để đồng bộ đa thiết bị.
+  // ---- Magic-link login ----
+  // ====== EMAIL LOGIN TEMPORARILY DISABLED ======
+  // Goes straight into the app, no magic link needed. Progress is session-only (lost on reload)
+  // until you want to re-enable login for cross-device sync.
   const SKIP_LOGIN = true;
 
   async function initAuth(){
@@ -806,9 +941,9 @@
     });
   }
 
-  // ====== TẠM TẮT GATE THANH TOÁN (LICENSE) ======
-  // Đang để chế độ: ai đăng nhập cũng vào được thẳng app, chỉ cần có tài khoản.
-  // Khi nào quay lại việc bán, đổi dòng dưới thành `false` để bật lại kiểm tra license.
+  // ====== PAYMENT GATE (LICENSE CHECK) TEMPORARILY DISABLED ======
+  // Current mode: anyone who logs in goes straight into the app, just needs an account.
+  // When you're ready to sell again, change the line below to `false` to re-enable the license check.
   const SKIP_LICENSE_CHECK = true;
 
   async function checkLicenseAndEnter(){
@@ -841,12 +976,12 @@
   document.getElementById('authSendBtn').addEventListener('click', async () => {
     const email = document.getElementById('authEmail').value.trim();
     const msg = document.getElementById('authMsg');
-    if(!email){ msg.textContent = 'Nhập email trước đã.'; msg.className='auth-msg error'; return; }
-    if(!supabaseConfigured){ msg.textContent = 'Chưa cấu hình Supabase trong file này.'; msg.className='auth-msg error'; return; }
-    msg.textContent = 'Đang gửi...'; msg.className = 'auth-msg';
+    if(!email){ msg.textContent = 'Enter your email first.'; msg.className='auth-msg error'; return; }
+    if(!supabaseConfigured){ msg.textContent = "Supabase isn't configured in this file yet."; msg.className='auth-msg error'; return; }
+    msg.textContent = 'Sending...'; msg.className = 'auth-msg';
     const { error } = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.href } });
-    if(error){ msg.textContent = 'Có lỗi: ' + error.message; msg.className = 'auth-msg error'; }
-    else { msg.textContent = 'Đã gửi link đăng nhập — kiểm tra email của bạn.'; msg.className = 'auth-msg ok'; }
+    if(error){ msg.textContent = 'Error: ' + error.message; msg.className = 'auth-msg error'; }
+    else { msg.textContent = 'Login link sent — check your email.'; msg.className = 'auth-msg ok'; }
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -868,7 +1003,8 @@
       notes: {},          // lessonId -> free text
       studyMinutes: 30,
       srs: {},            // lessonId -> {interval, dueDate, ease}
-      labProgress: {}      // domainId -> {stepIndex: true}
+      labProgress: {},     // domainId -> {stepIndex: true}
+      confidence: {}       // lessonId -> 'shaky' | 'ok' | 'confident'
     };
   }
 
@@ -881,7 +1017,7 @@
     const d = l.detail || {};
     let blocks = '';
     if(d.simple){
-      blocks += `<div class="detail-block"><div class="detail-label">Tầng 1 · Simple Explanation</div><div class="detail-text">${d.simple}</div></div>`;
+      blocks += `<div class="detail-block"><div class="detail-label">Tier 1 · Simple Explanation</div><div class="detail-text">${d.simple}</div></div>`;
     }
     if(d.analogy){
       blocks += `<div class="detail-block"><div class="detail-label">Real-life analogy</div><div class="detail-text">${d.analogy}</div></div>`;
@@ -892,17 +1028,26 @@
       }</div></div>`;
     }
     if(d.advanced){
-      blocks += `<div class="detail-block"><div class="detail-label">Tầng 2 · Chi tiết kỹ thuật (Portal/cấu hình)</div><div class="detail-text">${d.advanced}</div></div>`;
+      blocks += `<div class="detail-block"><div class="detail-label">Tier 2 · Technical Detail (Portal/Configuration)</div><div class="detail-text">${d.advanced}</div></div>`;
     }
     if(d.cli){
-      blocks += `<div class="detail-block"><div class="detail-label">Lệnh CLI mẫu</div><div class="code-block">${d.cli}</div></div>`;
+      blocks += `<div class="detail-block"><div class="detail-label">Sample CLI command</div><div class="code-block">${d.cli}</div></div>`;
     }
     if(d.examTrap){
-      blocks += `<div class="detail-block trap-block"><div class="detail-label">Tầng 3 · Bẫy hay gặp trong đề thi</div><div class="detail-text">${d.examTrap}</div></div>`;
+      blocks += `<div class="detail-block trap-block"><div class="detail-label">Tier 3 · Common Exam Trap</div><div class="detail-text">${d.examTrap}</div></div>`;
     }
     const noteVal = state.notes[l.id] || '';
-    blocks += `<div class="detail-block"><div class="detail-label">Ghi chú của bạn</div>
-      <textarea class="notes-box" data-note="${l.id}" placeholder="Viết ví dụ của riêng bạn để nhớ lâu hơn...">${noteVal}</textarea>
+    blocks += `<div class="detail-block"><div class="detail-label">Your notes</div>
+      <textarea class="notes-box" data-note="${l.id}" placeholder="Write your own example to help it stick...">${noteVal}</textarea>
+    </div>`;
+    const conf = state.confidence[l.id];
+    blocks += `<div class="detail-block"><div class="detail-label">How confident do you feel about this topic?</div>
+      <div class="conf-row">
+        <button class="conf-btn ${conf==='shaky'?'active shaky':''}" data-conf="${l.id}" data-conf-val="shaky">😓 Shaky</button>
+        <button class="conf-btn ${conf==='ok'?'active ok':''}" data-conf="${l.id}" data-conf-val="ok">🙂 OK</button>
+        <button class="conf-btn ${conf==='confident'?'active confident':''}" data-conf="${l.id}" data-conf-val="confident">💪 Confident</button>
+      </div>
+      ${conf==='shaky' ? '<div class="detail-text" style="margin-top:6px; color:var(--coral); font-size:11.5px;">Marked shaky — quiz questions on this topic will keep coming back soon even if you answer them right, until you feel more solid.</div>' : ''}
     </div>`;
     return `<div class="detail-panel">
       ${blocks}
@@ -933,12 +1078,13 @@
     document.getElementById('streakText').textContent = `🔥 ${state.streak} day streak`;
     document.getElementById('lastSession').textContent = state.lastSessionDate ? `last session: ${state.lastSessionDate}` : 'no sessions yet';
 
-    // study minutes input (sync giá trị, không ghi đè khi đang gõ)
+    // study minutes input (sync value, but don't overwrite while the person is typing)
     const studyInput = document.getElementById('studyMinInput');
     if(document.activeElement !== studyInput) studyInput.value = state.studyMinutes;
 
-    // recommendation box — dựa trên tỷ lệ sai theo domain
+    // recommendation box — based on miss-rate per domain
     renderRecommendation();
+    renderWeekTracker();
 
     // watchlist
     const watchKeys = Object.keys(state.watch);
@@ -1021,7 +1167,15 @@
       t.addEventListener('click', (e) => e.stopPropagation());
       t.addEventListener('change', () => {
         state.notes[t.dataset.note] = t.value;
-        save(); // không render() lại để không mất focus/con trỏ đang gõ
+        save(); // don't re-render here so we don't lose focus/cursor while typing
+      });
+    });
+    rgList.querySelectorAll('.conf-btn').forEach(cb => {
+      cb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const lessonId = cb.dataset.conf, val = cb.dataset.confVal;
+        state.confidence[lessonId] = (state.confidence[lessonId] === val) ? undefined : val;
+        render(); save();
       });
     });
     rgList.querySelectorAll('.lab-step').forEach(ls => {
@@ -1035,7 +1189,34 @@
     });
   }
 
-  // ---- Gợi ý học tiếp theo, dựa trên tỷ lệ sai theo domain ----
+  // ---- Next-lesson recommendation, based on miss-rate per domain ----
+  // ---- Weekly pacing tracker — maps the 8-week plan onto actual domain progress ----
+  const WEEK_MAP = [
+    {week:1, domain:'identity-gov'}, {week:2, domain:'identity-gov'},
+    {week:3, domain:'storage'},
+    {week:4, domain:'compute'},
+    {week:5, domain:'networking'}, {week:6, domain:'networking'},
+    {week:7, domain:'monitor-mock'}, {week:8, domain:'monitor-mock'},
+  ];
+  function renderWeekTracker(){
+    const el = document.getElementById('weekTracker');
+    let currentWeek = null;
+    const chips = WEEK_MAP.map(w => {
+      const rg = CURRICULUM.find(r => r.id === w.domain);
+      const done = rg.lessons.filter(l => state.completed[l.id]).length;
+      const pct = Math.round((done / rg.lessons.length) * 100);
+      if(currentWeek === null && pct < 100) currentWeek = w.week;
+      return { week:w.week, color:rg.color, pct };
+    });
+    el.innerHTML = chips.map(c => `
+      <div class="week-chip ${c.week===currentWeek?'current':''}">
+        <div class="week-chip-fill" style="background:${c.color}; height:${c.pct}%; bottom:0; top:auto;"></div>
+        <div class="week-chip-label">W${c.week}</div>
+        <div class="week-chip-num">${c.pct}%</div>
+      </div>
+    `).join('');
+  }
+
   function renderRecommendation(){
     const box = document.getElementById('recoBox');
     const domainMiss = {}; // domainId -> {miss, total}
@@ -1053,7 +1234,7 @@
     const rg = CURRICULUM.find(r => r.id === worst);
     const weakLessons = rg.lessons.filter(l => state.watch[l.id]).map(l => l.name.split(' —')[0]).slice(0,2);
     box.style.display = 'block';
-    box.innerHTML = `<b>Gợi ý học tiếp theo:</b> Bạn đang sai nhiều nhất ở domain <b>${rg.name}</b> (${domainMiss[worst].miss} lượt sai). Nên ôn lại "${weakLessons.join('", "')}" trước khi học bài mới.`;
+    box.innerHTML = `<b>Up next:</b> You're missing the most questions in <b>${rg.name}</b> (${domainMiss[worst].miss} misses). Worth reviewing "${weakLessons.join('", "')}" before moving on to new material.`;
   }
 
   document.getElementById('studyMinInput').addEventListener('change', (e) => {
@@ -1062,7 +1243,7 @@
     save();
   });
 
-  // ---- Reference Library (bảng so sánh + giới hạn dịch vụ) — nội dung tĩnh, render 1 lần ----
+  // ---- Reference Library (comparison tables + service limits) — static content, rendered once ----
   function renderReferenceLibrary(){
     const body = document.getElementById('refLibraryBody');
     let html = '';
@@ -1071,7 +1252,7 @@
         <table class="ref-table"><thead><tr>${t.columns.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
         <tbody>${t.rows.map(row => `<tr>${row.map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
     });
-    html += `<div class="ref-table-title">Giới hạn dịch vụ hay bị hỏi trong đề thi</div><div class="limits-list">
+    html += `<div class="ref-table-title">Service limits commonly tested on the exam</div><div class="limits-list">
       ${SERVICE_LIMITS.map(([k,v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('')}
     </div>`;
     body.innerHTML = html;
@@ -1086,20 +1267,27 @@
 
   function save(){ store.set(state); }
 
-  // ---- Quiz engine (hỗ trợ cả quiz hàng ngày lẫn Mock Exam) ----
+  // ---- Quiz engine (supports both the daily quiz and Mock Exam) ----
   let quizQueue = [], quizIndex = 0, quizScore = 0;
   let mockMode = false, mockTimer = null, mockSecondsLeft = 0, mockDomainStats = {};
 
-  // Spaced repetition thật (rút gọn từ SM-2): trả lời đúng → giãn khoảng lặp lại xa hơn;
-  // trả lời sai → kéo về gần (due lại ngay hôm sau).
+  // Real spaced repetition (simplified SM-2): correct answer → push the interval further out;
+  // wrong answer → pull it back in (due again the next day).
+  // A 'shaky' confidence self-rating caps how far the interval can grow even on
+  // a correct answer — catches the case of guessing right without really knowing it.
   function srsUpdate(lessonId, correct){
     const rec = state.srs[lessonId] || { interval:0, ease:2.3 };
     const today = new Date();
+    const isShaky = state.confidence[lessonId] === 'shaky';
     if(correct){
-      rec.interval = rec.interval === 0 ? 1 : Math.round(rec.interval * rec.ease);
-      rec.ease = Math.min(3.0, rec.ease + 0.1);
+      if(isShaky){
+        rec.interval = 1; // don't let a shaky lesson jump far out just because one guess landed right
+      } else {
+        rec.interval = rec.interval === 0 ? 1 : Math.round(rec.interval * rec.ease);
+        rec.ease = Math.min(3.0, rec.ease + 0.1);
+      }
     } else {
-      rec.interval = 0; // due lại ngay
+      rec.interval = 0; // due again right away
       rec.ease = Math.max(1.3, rec.ease - 0.3);
     }
     const due = new Date(today); due.setDate(due.getDate() + Math.max(rec.interval,1));
@@ -1129,8 +1317,8 @@
 
   function shuffle(arr){ return arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
 
-  // Trọng số theo đúng tỷ lệ % domain của đề thi thật AZ-104
-  const MOCK_WEIGHTS = { 'identity-gov':0.175, 'storage':0.175, 'compute':0.225, 'networking':0.225, 'monitor-mock':0.2 };
+  // Weights matching the real AZ-104 exam's domain percentages
+  const MOCK_WEIGHTS = { 'identity-gov':0.24, 'storage':0.19, 'compute':0.24, 'networking':0.19, 'monitor-mock':0.14 };
   const MOCK_TOTAL = 20, MOCK_MINUTES = 25;
 
   function buildMockQueue(){
@@ -1140,7 +1328,7 @@
       const domainQuestions = shuffle(QUESTIONS.filter(q => domainOfLesson(q.lesson) === rg.id));
       domainQuestions.slice(0, desired).forEach(q => queue.push({...q, domain: rg.id}));
     });
-    // Chèn case-study clusters (mỗi câu trong cluster tính vào domain tương ứng)
+    // Insert case-study clusters (each question in a cluster counts toward its domain)
     CASE_STUDIES.forEach(cs => {
       cs.questions.forEach(q => queue.push({...q, domain: cs.domain, scenario: cs.scenario}));
     });
@@ -1174,7 +1362,7 @@
       updateMockTimerText();
       if(mockSecondsLeft <= 0){
         clearInterval(mockTimer);
-        quizIndex = quizQueue.length; // hết giờ → nộp bài ngay
+        quizIndex = quizQueue.length; // time's up → submit immediately
         renderQuizStep();
       }
     }, 1000);
@@ -1203,24 +1391,94 @@
     if(mockMode) stopMockTimer();
   }
 
+  // ---- Key Terms Flashcards — a faster, separate drilling mode for vocabulary recall ----
+  let flashDeck = [], flashIndex = 0, flashShowingDef = false;
+
+  function buildFlashDeck(){
+    const completedIds = Object.keys(state.completed);
+    let pool = [];
+    CURRICULUM.forEach(rg => rg.lessons.forEach(l => {
+      if(l.detail && l.detail.terms && completedIds.includes(l.id)){
+        l.detail.terms.forEach(([term, def]) => pool.push({ term, def, lessonName: l.name }));
+      }
+    }));
+    // if nothing completed yet has terms, fall back to every lesson so the deck is never empty
+    if(pool.length === 0){
+      CURRICULUM.forEach(rg => rg.lessons.forEach(l => {
+        if(l.detail && l.detail.terms) l.detail.terms.forEach(([term, def]) => pool.push({ term, def, lessonName: l.name }));
+      }));
+    }
+    return shuffle(pool);
+  }
+
+  function openFlashcards(){
+    flashDeck = buildFlashDeck();
+    flashIndex = 0; flashShowingDef = false;
+    document.getElementById('overlay').classList.add('show');
+    renderFlashStep();
+  }
+
+  function renderFlashStep(){
+    const card = document.getElementById('quizCard');
+    if(flashDeck.length === 0){
+      card.innerHTML = `<button class="quiz-close" id="qClose">✕</button><div class="quiz-done"><div class="quiz-progress">No terms yet</div><div style="color:var(--muted); font-size:13px;">Mark a few lessons as deployed first, then come back here to drill their key terms.</div></div>`;
+      document.getElementById('qClose').onclick = closeQuiz;
+      return;
+    }
+    if(flashIndex >= flashDeck.length){
+      card.innerHTML = `<button class="quiz-close" id="qClose">✕</button><div class="quiz-done"><div class="quiz-progress">Deck complete</div><div class="score">${flashDeck.length}</div><div style="color:var(--muted); font-size:13px;">terms reviewed — restart anytime from the Flashcards button.</div></div>`;
+      document.getElementById('qClose').onclick = closeQuiz;
+      return;
+    }
+    const f = flashDeck[flashIndex];
+    card.innerHTML = `
+      <button class="quiz-close" id="qClose">✕</button>
+      <div class="quiz-progress">${f.lessonName}</div>
+      <div class="flash-card" id="flashCard">
+        <div class="flash-term">${f.term}</div>
+        <div class="flash-def ${flashShowingDef?'show':''}">${f.def}</div>
+        <div class="flash-hint">${flashShowingDef ? '' : 'tap the card to reveal the definition'}</div>
+      </div>
+      <div class="flash-nav">
+        <span class="flash-count">${flashIndex+1} / ${flashDeck.length}</span>
+        <button class="btn btn-primary" id="flashNext">Next →</button>
+      </div>
+    `;
+    document.getElementById('qClose').onclick = closeQuiz;
+    document.getElementById('flashCard').onclick = () => { flashShowingDef = !flashShowingDef; renderFlashStep(); };
+    document.getElementById('flashNext').onclick = () => { flashIndex++; flashShowingDef = false; renderFlashStep(); };
+  }
+
+  document.getElementById('flashcardBtn').addEventListener('click', openFlashcards);
+
+  function readinessLabel(pct){
+    if(pct >= 80) return { text:'Likely ready', color:'var(--teal)' };
+    if(pct >= 60) return { text:'Borderline — needs more review', color:'var(--amber)' };
+    return { text:'Not yet ready', color:'var(--coral)' };
+  }
+
   function renderQuizStep(){
     const card = document.getElementById('quizCard');
     if(quizIndex >= quizQueue.length){
       if(mockMode){
         stopMockTimer();
+        const overallPct = Math.round((quizScore/quizQueue.length)*100);
         const estimated = Math.round((quizScore/quizQueue.length)*1000);
+        const overallReadiness = readinessLabel(overallPct);
         const domainRows = CURRICULUM.map(rg => {
           const st = mockDomainStats[rg.id];
           if(!st || st.total === 0) return '';
           const pct = Math.round((st.correct/st.total)*100);
-          return `<div class="domain-score-row"><span>${rg.name}</span><div class="domain-score-bar"><div class="domain-score-fill" style="width:${pct}%"></div></div><span>${st.correct}/${st.total}</span></div>`;
+          const r = readinessLabel(pct);
+          return `<div class="domain-score-row"><span>${rg.name}</span><div class="domain-score-bar"><div class="domain-score-fill" style="width:${pct}%"></div></div><span>${st.correct}/${st.total} · <span style="color:${r.color}">${r.text}</span></span></div>`;
         }).join('');
         card.innerHTML = `
           <button class="quiz-close" id="qClose">✕</button>
           <div class="quiz-done">
-            <div class="quiz-progress">Mock Exam hoàn thành</div>
+            <div class="quiz-progress">Mock Exam complete</div>
             <div class="score">${quizScore}/${quizQueue.length}</div>
-            <div style="color:var(--muted); font-size:12.5px; margin-bottom:14px;">Điểm ước tính: <b style="color:var(--teal)">${estimated}/1000</b> (ước tính thô, KHÔNG phải thang điểm chính thức của Microsoft)</div>
+            <div style="font-family:var(--display); font-weight:700; font-size:16px; color:${overallReadiness.color}; margin-bottom:4px;">${overallReadiness.text}</div>
+            <div style="color:var(--muted); font-size:12.5px; margin-bottom:14px;">Rough estimate: <b style="color:var(--teal)">${estimated}/1000</b> — this is NOT Microsoft's official scoring scale, just a directional signal from a small practice pool. Treat the readiness label as more meaningful than the number.</div>
             <div style="text-align:left;">${domainRows}</div>
           </div>`;
       } else {
@@ -1244,24 +1502,61 @@
     }
     const q = quizQueue[quizIndex];
     const scenarioHtml = q.scenario ? `<div class="scenario-box">${q.scenario}</div>` : '';
+    const isMulti = q.type === 'multiselect';
     card.innerHTML = `
       <button class="quiz-close" id="qClose">✕</button>
-      <div class="quiz-progress">Question ${quizIndex+1} of ${quizQueue.length}${q.lesson ? ' · '+lessonNameById(q.lesson) : ''}${q.type==='troubleshoot' ? ' · 🔧 Troubleshooting' : ''}</div>
+      <div class="quiz-progress">Question ${quizIndex+1} of ${quizQueue.length}${q.lesson ? ' · '+lessonNameById(q.lesson) : ''}${q.type==='troubleshoot' ? ' · 🔧 Troubleshooting' : ''}${isMulti ? ' · ☑ Select all that apply' : ''}</div>
       ${scenarioHtml}
       <div class="quiz-q">${q.q}</div>
       <div id="qOpts"></div>
+      ${isMulti ? '<div class="quiz-next" id="qSubmitWrap" style="margin-top:10px;"><button class="btn btn-primary" id="qSubmit">Submit answer</button></div>' : ''}
       <div class="quiz-explain" id="qExplain">${q.why}</div>
       <div class="quiz-next" id="qNextWrap" style="display:none;"><button class="btn btn-primary" id="qNext">Next →</button></div>
     `;
     document.getElementById('qClose').onclick = closeQuiz;
     const optsWrap = document.getElementById('qOpts');
-    q.opts.forEach((opt, i) => {
-      const b = document.createElement('button');
-      b.className = 'quiz-opt';
-      b.textContent = opt;
-      b.onclick = () => answer(i, q);
-      optsWrap.appendChild(b);
-    });
+
+    if(isMulti){
+      const selected = new Set();
+      q.opts.forEach((opt, i) => {
+        const b = document.createElement('button');
+        b.className = 'quiz-opt';
+        b.textContent = '☐ ' + opt;
+        b.onclick = () => {
+          if(selected.has(i)){ selected.delete(i); b.textContent = '☐ ' + opt; b.style.borderColor = ''; }
+          else { selected.add(i); b.textContent = '☑ ' + opt; b.style.borderColor = 'var(--amber)'; }
+        };
+        optsWrap.appendChild(b);
+      });
+      document.getElementById('qSubmit').onclick = () => answerMulti(Array.from(selected), q);
+    } else {
+      q.opts.forEach((opt, i) => {
+        const b = document.createElement('button');
+        b.className = 'quiz-opt';
+        b.textContent = opt;
+        b.onclick = () => answer(i, q);
+        optsWrap.appendChild(b);
+      });
+    }
+  }
+
+  function gradeAndAdvance(q, isCorrect){
+    if(isCorrect) quizScore++;
+    if(mockMode && q.domain){
+      mockDomainStats[q.domain].total++;
+      if(isCorrect) mockDomainStats[q.domain].correct++;
+    }
+    if(q.lesson){
+      srsUpdate(q.lesson, isCorrect);
+      if(isCorrect){
+        if(state.watch[q.lesson] && state.watch[q.lesson].misses <= 1) delete state.watch[q.lesson];
+      } else {
+        const name = lessonNameById(q.lesson);
+        if(!state.watch[q.lesson]) state.watch[q.lesson] = { name, misses:0 };
+        state.watch[q.lesson].misses++;
+      }
+    }
+    save();
   }
 
   function answer(i, q){
@@ -1273,27 +1568,25 @@
     });
     document.getElementById('qExplain').classList.add('show');
     document.getElementById('qNextWrap').style.display = 'block';
-
-    const isCorrect = i === q.a;
-    if(isCorrect) quizScore++;
-
-    if(mockMode && q.domain){
-      mockDomainStats[q.domain].total++;
-      if(isCorrect) mockDomainStats[q.domain].correct++;
-    }
-
-    if(q.lesson){
-      srsUpdate(q.lesson, isCorrect);
-      if(isCorrect){
-        if(state.watch[q.lesson] && state.watch[q.lesson].misses <= 1) delete state.watch[q.lesson];
-      } else {
-        const name = lessonNameById(q.lesson);
-        if(!state.watch[q.lesson]) state.watch[q.lesson] = { name, misses:0 };
-        state.watch[q.lesson].misses++;
-      }
-    }
+    gradeAndAdvance(q, i === q.a);
     document.getElementById('qNext').onclick = () => { quizIndex++; renderQuizStep(); };
-    save();
+  }
+
+  function answerMulti(selectedArr, q){
+    const opts = document.querySelectorAll('.quiz-opt');
+    const correctSet = new Set(q.correct);
+    const selectedSet = new Set(selectedArr);
+    opts.forEach((b, idx) => {
+      b.onclick = null;
+      if(correctSet.has(idx)) b.classList.add('correct');
+      else if(selectedSet.has(idx)) b.classList.add('wrong');
+    });
+    document.getElementById('qSubmitWrap').style.display = 'none';
+    document.getElementById('qExplain').classList.add('show');
+    document.getElementById('qNextWrap').style.display = 'block';
+    const isCorrect = selectedSet.size === correctSet.size && [...selectedSet].every(i => correctSet.has(i));
+    gradeAndAdvance(q, isCorrect);
+    document.getElementById('qNext').onclick = () => { quizIndex++; renderQuizStep(); };
   }
 
   document.getElementById('startQuizBtn').addEventListener('click', openQuiz);
